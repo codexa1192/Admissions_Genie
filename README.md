@@ -1,6 +1,10 @@
 # Admissions Genie - SNF Admission Decision Support Tool
 
+**Status:** ✅ **v1.0.0 - Demo Ready** | [Quick Demo Start](#quick-demo-start) | [Full Documentation](#installation)
+
 A HIPAA-compliant web application that helps Skilled Nursing Facility (SNF) admissions staff make data-driven decisions by analyzing discharge packets, calculating projected margins based on facility-specific reimbursement rates, and providing transparent recommendations.
+
+**Current Version:** Demo-ready MVP with synthetic data. Includes 3 pre-loaded sample admissions and realistic discharge documents for live demonstration.
 
 ## Features
 
@@ -18,6 +22,34 @@ A HIPAA-compliant web application that helps Skilled Nursing Facility (SNF) admi
 - **Audit Logging**: Comprehensive audit trail for all system actions and admission decisions
 - **Input Validation**: Frontend and backend validation for data integrity and security
 - **Enhanced UX**: Loading states, file previews, tooltips, and real-time form validation
+
+## Quick Demo Start
+
+**Get demo-ready in 2 minutes:**
+
+```bash
+cd Documents/Admissions-Genie
+
+# Initialize database with sample data
+python3 -c "from config.database import init_db; init_db()"
+python3 seed_database.py
+
+# Start application
+PORT=8080 python3 app.py
+```
+
+Open http://localhost:8080 and login with:
+- **Admin:** admin@admissionsgenie.com / admin123
+- **User:** user@admissionsgenie.com / user123
+
+**Demo includes:**
+- 3 pre-loaded sample admissions (scores: 87, 62, 38)
+- 3 realistic discharge summaries in `demo_documents/`
+- Complete 15-minute demo script in [DEMO_GUIDE.md](DEMO_GUIDE.md)
+
+📖 **For detailed demo instructions:** See [QUICK_START_DEMO.md](QUICK_START_DEMO.md)
+
+---
 
 ## Cost Structure
 
@@ -203,10 +235,36 @@ python3 test_all_flows.py
 # - Edge cases and error handling
 ```
 
+## Git Repository
+
+This project uses Git for version control with proper PHI protection:
+
+```bash
+# Repository is already initialized
+git log --oneline      # View commit history
+git status             # Check current status
+```
+
+**Security:** All sensitive files properly excluded:
+- ✅ `.env` files (API keys)
+- ✅ `*.db` files (patient data)
+- ✅ `data/uploads/*` (uploaded documents)
+- ✅ Log files (may contain PHI)
+
+📖 **For full Git documentation:** See [GIT_SETUP.md](GIT_SETUP.md)
+
+### Push to GitHub
+
+```bash
+# Create repository on GitHub, then:
+git remote add origin https://github.com/yourusername/admissions-genie.git
+git push -u origin main
+```
+
 ## Deployment to Render
 
 1. **Create render.yaml** (already included)
-2. **Push to GitHub**
+2. **Push to GitHub** (see above)
 3. **Connect to Render**:
    - Go to https://render.com
    - New Web Service → Connect GitHub repo
@@ -216,7 +274,7 @@ python3 test_all_flows.py
 
 ## Roadmap
 
-### Phase 1 (MVP - ✅ COMPLETE)
+### Phase 1 (MVP - ✅ COMPLETE - v1.0.0 Demo Ready)
 - ✅ Document upload and parsing (PDF, Word, images)
 - ✅ Azure OpenAI extraction with local OCR fallback
 - ✅ PDPM classification engine (PT, OT, SLP, Nursing, NTA)
@@ -231,8 +289,27 @@ python3 test_all_flows.py
 - ✅ Comprehensive test suite (29 tests, 100% pass rate)
 - ✅ Database indexing for performance
 - ✅ Security hardening (CSRF, rate limiting, password hashing)
+- ✅ **Demo materials** (3 sample admissions + discharge documents)
+- ✅ **Demo documentation** (complete demo guide and scripts)
+- ✅ **Git repository** (initialized with PHI protection)
+- ✅ **Startup validation** (environment variable checking)
 
-### Phase 2 (Future Enhancements)
+**Current Status:** Production-ready for demo with synthetic data. Ready to show SNFs.
+
+### Phase 2 (Production Hardening - 2-3 weeks)
+**For deployment with real PHI:**
+- [ ] Comprehensive audit logging implementation (currently model exists but not used)
+- [ ] File encryption at rest for uploaded documents
+- [ ] Automated file cleanup policy (30-90 days)
+- [ ] Security headers (CSP, HSTS, X-Frame-Options)
+- [ ] Async file processing (Celery + Redis)
+- [ ] Database connection pooling
+- [ ] Full CMS PDPM ICD-10 mapping database (thousands of codes)
+- [ ] Production monitoring and alerting (Sentry/Datadog)
+- [ ] Database backup automation
+- [ ] Rate limiting with Redis
+
+### Phase 3 (Future Enhancements)
 - [ ] Pre-authorization tracking and workflow
 - [ ] EHR integration (PointClickCare, MatrixCare)
 - [ ] Auto-fetch CMS rate updates via API
