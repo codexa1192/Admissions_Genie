@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Admission History - Admissions Genie{% endblock %}
+{% block content %}
+<h2><i class="fas fa-history"></i> Admission History</h2>
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead><tr><th>ID</th><th>Patient</th><th>Date</th><th>Score</th><th>Recommendation</th><th>Margin</th><th>Decision</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for detail in admission_details %}
+            <tr>
+                <td>{{ detail.admission.id }}</td>
+                <td>{{ detail.admission.patient_initials or 'N/A' }}</td>
+                <td>{{ detail.admission.created_at.strftime('%Y-%m-%d') if detail.admission.created_at else 'N/A' }}</td>
+                <td><span class="badge bg-{% if detail.admission.margin_score >= 70 %}success{% elif detail.admission.margin_score >= 40 %}warning{% else %}danger{% endif %}">{{ detail.admission.margin_score }}/100</span></td>
+                <td><span class="badge bg-{% if detail.admission.recommendation == 'Accept' %}success{% elif detail.admission.recommendation == 'Defer' %}warning{% else %}danger{% endif %}">{{ detail.admission.recommendation }}</span></td>
+                <td>{{ (detail.admission.projected_revenue - detail.admission.projected_cost) | currency }}</td>
+                <td>{% if detail.admission.actual_decision %}<span class="badge bg-secondary">{{ detail.admission.actual_decision }}</span>{% else %}<span class="text-muted">Pending</span>{% endif %}</td>
+                <td><a href="{{ url_for('admission.view_admission', admission_id=detail.admission.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

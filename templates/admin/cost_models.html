@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Cost Models - Admin{% endblock %}
+{% block content %}
+<h2><i class="fas fa-calculator"></i> Cost Models</h2>
+<a href="{{ url_for('admin.new_cost_model') }}" class="btn btn-primary mb-3"><i class="fas fa-plus"></i> New Cost Model</a>
+<form method="GET" class="mb-3"><select class="form-select" name="facility_id" onchange="this.form.submit()"><option value="">Select Facility...</option>{% for facility in facilities %}<option value="{{ facility.id }}" {% if selected_facility and selected_facility.id == facility.id %}selected{% endif %}>{{ facility.name }}</option>{% endfor %}</select></form>
+{% if cost_models %}<table class="table"><thead><tr><th>Acuity Band</th><th>Nursing Hours/Day</th><th>Hourly Rate</th><th>Supply Cost</th><th>Actions</th></tr></thead><tbody>{% for cm in cost_models %}<tr><td>{{ cm.acuity_band }}</td><td>{{ cm.nursing_hours }}</td><td>{{ cm.hourly_rate | currency }}</td><td>{{ cm.supply_cost | currency }}</td><td><a href="{{ url_for('admin.edit_cost_model', cost_model_id=cm.id) }}" class="btn btn-sm btn-primary">Edit</a></td></tr>{% endfor %}</tbody></table>{% endif %}
+{% endblock %}

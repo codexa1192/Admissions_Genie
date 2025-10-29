@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Upload Rates - Admin{% endblock %}
+{% block content %}
+<h2><i class="fas fa-upload"></i> Upload Rates</h2>
+<form method="POST" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="mb-3"><label>Facility</label><select class="form-select" name="facility_id" required>{% for facility in facilities %}<option value="{{ facility.id }}">{{ facility.name }}</option>{% endfor %}</select></div><div class="mb-3"><label>Payer</label><select class="form-select" name="payer_id" required>{% for payer in payers %}<option value="{{ payer.id }}">{{ payer.get_display_name() }}</option>{% endfor %}</select></div><div class="mb-3"><label>Rate Type</label><select class="form-select" name="rate_type" required>{% for rate_type in rate_types %}<option value="{{ rate_type }}">{{ rate_type }}</option>{% endfor %}</select></div><div class="mb-3"><label>CSV File</label><input type="file" class="form-control" name="csv_file" accept=".csv" required></div><div class="mb-3"><label>Effective Date</label><input type="date" class="form-control" name="effective_date" required></div><button type="submit" class="btn btn-primary">Upload</button><a href="{{ url_for('admin.rates') }}" class="btn btn-secondary">Cancel</a></form>
+{% endblock %}

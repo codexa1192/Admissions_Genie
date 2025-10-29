@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Admission #{{ admission.id }} - Admissions Genie{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-line"></i> Admission Analysis #{{ admission.id }}</h2>
+        <p class="text-muted">
+            Patient: <strong>{{ admission.patient_initials or 'N/A' }}</strong> |
+            Facility: <strong>{{ facility.name }}</strong> |
+            Payer: <strong>{{ payer.get_display_name() }}</strong> |
+            Created: {{ admission.created_at.strftime('%Y-%m-%d %H:%M') if admission.created_at else 'N/A' }}
+        </p>
+        <hr>
+    </div>
+</div>
+
+<!-- Score and Recommendation -->
+<div class="row mb-4">
+    <div class="col-md-3 text-center">
+        <div class="card border-{% if admission.margin_score >= 70 %}success{% elif admission.margin_score >= 40 %}warning{% else %}danger{% endif %} shadow">
+            <div class="card-body">
+                <h5 class="card-title">Margin Score</h5>
+                <div class="score-badge score-{% if admission.recommendation == 'Accept' %}accept{% elif admission.recommendation == 'Defer' %}defer{% else %}decline{% endif %}">
+                    {{ admission.margin_score }}
+                </div>
+                <p class="mt-2 mb-0"><small>out of 100</small></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9">
+        <div class="card recommendation-card {% if admission.recommendation == 'Accept' %}accept{% elif admission.recommendation == 'Defer' %}defer{% else %}decline{% endif %} shadow">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-{% if admission.recommendation == 'Accept' %}check-circle text-success{% elif admission.recommendation == 'Defer' %}pause-circle text-warning{% else %}times-circle text-danger{% endif %}"></i>
+                    Recommendation: <strong>{{ admission.recommendation }}</strong>
+                </h5>
+                <p class="mb-0">{{ admission.explanation.rationale if admission.explanation and admission.explanation.rationale else 'Moderate margin case requiring review.' }}</p>
+
+                <hr>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <strong>Revenue:</strong> {{ admission.projected_revenue | currency }}<br>
+                        <strong>Cost:</strong> {{ admission.projected_cost | currency }}<br>
+                        <strong>Net Margin:</strong>
+                        <span class="{% if (admission.projected_revenue - admission.projected_cost) > 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                            {{ (admission.projected_revenue - admission.projected_cost) | currency }}
+                        </span>
+                        <small class="text-muted">({{ ((admission.projected_revenue - admission.projected_cost) / admission.projected_los) | currency }}/day)</small>
+                    </div>
+
+                    {% if not admission.actual_decision %}
+                    <div class="mt-2 mt-md-0">
+                        <form method="POST" action="{{ url_for('admission.record_decision', admission_id=admission.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="decision" value="Accept">
+                            <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Accept</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admission.record_decision', admission_id=admission.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="decision" value="Defer">
+                            <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-pause"></i> Defer</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admission.record_decision', admission_id=admission.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="decision" value="Decline">
+                            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Decline</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div><span class="badge bg-secondary fs-6">Decision: {{ admission.actual_decision }}</span></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-3 text-center">
+        <a href="{{ url_for('admission.admission_history') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to History
+        </a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a href="{{ url_for('admission.new_admission') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> New Admission
+        </a>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,21 @@
+--- test_all_flows.py.old
++++ test_all_flows.py
+@@ -153,14 +153,14 @@
+                        "Medicare result includes PT component")
+ 
+     # Medicare Advantage calculation
+     ma_rates = {
+-        'per_diem_rate': 550.0,
+-        'therapy_cap': 12000.0
++        'contract_type': 'per_diem',
++        'day_tiers': {'1-30': 450.00, '31-60': 400.00, '61-100': 375.00}
+     }
+ 
+-    ma_result = calc.calculate_ma_commercial(
+-        contract_rates=ma_rates, los=20,
+-        therapy_minutes={'PT': 300, 'OT': 200, 'SLP': 100}
+-    )
++    ma_result = calc.calculate_ma_commercial(contract_rates=ma_rates, los=20)
+ 
+     runner.assert_greater(ma_result['total_revenue'], 0,
+                           "Medicare Advantage generates revenue")

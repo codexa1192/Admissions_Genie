@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Rates - Admin{% endblock %}
+{% block content %}
+<h2><i class="fas fa-dollar-sign"></i> Rates Management</h2>
+<a href="{{ url_for('admin.upload_rates') }}" class="btn btn-primary mb-3"><i class="fas fa-upload"></i> Upload Rates</a>
+<p class="text-muted">Select a facility to view rates.</p>
+<form method="GET" class="mb-3"><select class="form-select" name="facility_id" onchange="this.form.submit()"><option value="">Select Facility...</option>{% for facility in facilities %}<option value="{{ facility.id }}" {% if selected_facility and selected_facility.id == facility.id %}selected{% endif %}>{{ facility.name }}</option>{% endfor %}</select></form>
+{% if rates %}<table class="table"><thead><tr><th>ID</th><th>Payer</th><th>Type</th><th>Effective Date</th></tr></thead><tbody>{% for rate in rates %}<tr><td>{{ rate.id }}</td><td>{{ rate.payer_id }}</td><td>{{ rate.payer_type }}</td><td>{{ rate.effective_date }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+{% endblock %}

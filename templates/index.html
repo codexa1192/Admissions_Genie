@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Admissions Genie{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="text-center mb-5">
+            <h1 class="display-3"><i class="fas fa-hospital-user text-primary"></i> Admissions Genie</h1>
+            <p class="lead text-muted">SNF Admission Decision Support Tool</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-medical fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Document Analysis</h5>
+                        <p class="card-text">Upload discharge summaries, therapy evals, and nursing notes. AI extracts clinical data automatically.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calculator fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Margin Scoring</h5>
+                        <p class="card-text">Transparent 0-100 score based on projected revenue, costs, and risk factors. Clear recommendations.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-money-bill-wave fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">Multi-Payer Support</h5>
+                        <p class="card-text">Medicare FFS, MA, Medicaid WI, Family Care. Facility-specific rates and cost models.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-6 offset-md-3">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h4 class="card-title text-center mb-4">Get Started</h4>
+                        <div class="d-grid gap-3">
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle"></i> Key Features</h5>
+                    <ul class="mb-0">
+                        <li><strong>PDPM Classification</strong>: Automatic PT, OT, SLP, Nursing, and NTA group assignment</li>
+                        <li><strong>Cost Estimation</strong>: Nursing, supplies, pharmacy, denial risk, and overhead</li>
+                        <li><strong>What-If Analysis</strong>: Adjust LOS, census priority, and other parameters in real-time</li>
+                        <li><strong>Audit Trail</strong>: Every decision tracked with rate versions and calculations</li>
+                        <li><strong>Low Cost</strong>: Only $50-100/month (Azure OpenAI API costs only)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

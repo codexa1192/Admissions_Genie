@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Admissions Genie{% endblock %}
+{% block content %}
+<h2><i class="fas fa-cog"></i> Admin Dashboard</h2>
+<div class="row g-4 mb-4">
+    <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body"><h5>Facilities</h5><h2>{{ stats.total_facilities }}</h2><a href="{{ url_for('admin.facilities') }}" class="btn btn-light btn-sm">Manage</a></div></div></div>
+    <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body"><h5>Payers</h5><h2>{{ stats.total_payers }}</h2><a href="{{ url_for('admin.payers') }}" class="btn btn-light btn-sm">Manage</a></div></div></div>
+    <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body"><h5>Users</h5><h2>{{ stats.total_users }}</h2><a href="{{ url_for('admin.users') }}" class="btn btn-light btn-sm">Manage</a></div></div></div>
+    <div class="col-md-3"><div class="card bg-warning"><div class="card-body"><h5>Active Users</h5><h2>{{ stats.active_users }}</h2></div></div></div>
+</div>
+<div class="row">
+    <div class="col-md-12"><h4>Quick Actions</h4><a href="{{ url_for('admin.new_facility') }}" class="btn btn-primary me-2"><i class="fas fa-plus"></i> New Facility</a><a href="{{ url_for('admin.new_payer') }}" class="btn btn-success me-2"><i class="fas fa-plus"></i> New Payer</a><a href="{{ url_for('admin.upload_rates') }}" class="btn btn-info me-2"><i class="fas fa-upload"></i> Upload Rates</a><a href="{{ url_for('admin.new_cost_model') }}" class="btn btn-warning"><i class="fas fa-plus"></i> New Cost Model</a></div>
+</div>
+{% endblock %}

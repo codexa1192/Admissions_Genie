@@ -1,0 +1,89 @@
+================================================================================
+HOSPITAL DISCHARGE SUMMARY
+================================================================================
+
+Patient: John D. (DOB: REDACTED)
+Medical Record #: DEMO-001-2025
+Admission Date: January 15, 2025
+Discharge Date: January 29, 2025
+Length of Stay: 14 days
+
+ADMITTING DIAGNOSIS:
+- Left hip fracture secondary to fall at home
+- Type 2 Diabetes Mellitus
+
+PROCEDURES PERFORMED:
+- Left total hip arthroplasty (01/16/2025)
+- Post-operative IV antibiotic therapy
+
+DISCHARGE DIAGNOSES:
+1. Status post left hip fracture with total hip replacement (ICD-10: Z96.641)
+2. Post-surgical complication - mild wound drainage (ICD-10: M96.661)
+3. Type 2 Diabetes Mellitus, controlled (ICD-10: E11.9)
+
+HOSPITAL COURSE:
+78-year-old patient admitted after mechanical fall at home resulting in left hip fracture. Patient underwent successful total hip arthroplasty on hospital day 2. Post-operative course complicated by mild wound drainage requiring extended IV antibiotic therapy (Vancomycin). Blood glucose management optimized with insulin sliding scale. Patient progressed well with physical and occupational therapy.
+
+FUNCTIONAL STATUS:
+- Pre-admission: Independent with ADLs, community ambulator with cane
+- At discharge: Requires moderate assistance for transfers and ADLs
+- Mobility: Weight-bearing as tolerated with walker, requires supervision
+- Self-Care Score: 8/18 (Barthel Index)
+- Cognition: Alert and oriented x3, BIMS score 12/15
+
+THERAPY EVALUATION SUMMARY:
+Physical Therapy:
+- Unable to ambulate independently due to hip precautions
+- Requires walker and moderate assist for transfers
+- Fair strength in bilateral lower extremities (hip flexion 3/5 left, 4/5 right)
+- Recommend intensive PT 5x/week for mobility training and strengthening
+
+Occupational Therapy:
+- ADL performance limited by hip mobility restrictions
+- Needs adaptive equipment for dressing lower body
+- Good upper extremity strength and coordination
+- Recommend OT 5x/week for ADL training and adaptive technique instruction
+
+Speech Therapy:
+- No swallowing or communication deficits noted
+- Alert and oriented, follows complex commands
+- No recommendation for speech therapy services
+
+MEDICATIONS AT DISCHARGE:
+1. Warfarin 5mg PO daily (INR monitoring required)
+2. Metformin 500mg PO BID
+3. Acetaminophen 650mg PO Q6H PRN pain
+4. Docusate Sodium 100mg PO BID
+5. Multivitamin 1 tablet PO daily
+
+SPECIAL CARE NEEDS:
+- IV Vancomycin 1g Q12H for 7 days (through 02/05/2025)
+- INR monitoring twice weekly, goal 2-3
+- Hip precautions: no hip flexion >90 degrees, no adduction past midline, no internal rotation
+- Fall precautions due to mobility limitations
+- Blood glucose monitoring QID
+
+DISPOSITION:
+Patient discharged to skilled nursing facility for continued rehabilitation and IV antibiotic therapy. Patient and family agree with plan. SNF accepting facility confirmed ability to provide IV antibiotics and intensive therapy services.
+
+ESTIMATED REHABILITATION NEEDS:
+- Projected Length of Stay: 25-30 days
+- Intensive PT/OT services for functional restoration
+- Medical management of anticoagulation and diabetes
+- IV therapy completion
+
+FOLLOW-UP APPOINTMENTS:
+- Orthopedic surgeon follow-up in 2 weeks
+- Primary care physician follow-up in 4 weeks
+- Wound check at SNF as needed
+
+PROGNOSIS:
+Good for functional recovery with appropriate rehabilitation. Patient motivated and cognitively intact. Expected to return to independent or near-independent functional status with therapy.
+
+Discharge completed by:
+Dr. Sarah Johnson, MD
+General Surgery
+Memorial Regional Hospital
+Date: January 29, 2025
+
+================================================================================

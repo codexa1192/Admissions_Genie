@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{% if payer %}Edit{% else %}New{% endif %} Payer - Admin{% endblock %}
+{% block content %}
+<h2>{% if payer %}Edit{% else %}New{% endif %} Payer</h2>
+<form method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="mb-3"><label>Type</label><select class="form-select" name="type" required>{% for payer_type in payer_types %}<option value="{{ payer_type }}" {% if payer and payer.type == payer_type %}selected{% endif %}>{{ payer_type }}</option>{% endfor %}</select></div><div class="mb-3"><label>Plan Name (optional)</label><input type="text" class="form-control" name="plan_name" value="{{ payer.plan_name if payer else '' }}"></div><div class="mb-3"><label>Network Status</label><select class="form-select" name="network_status"><option value="in_network" {% if payer and payer.network_status == 'in_network' %}selected{% endif %}>In Network</option><option value="out_of_network" {% if payer and payer.network_status == 'out_of_network' %}selected{% endif %}>Out of Network</option><option value="single_case" {% if payer and payer.network_status == 'single_case' %}selected{% endif %}>Single Case</option></select></div><button type="submit" class="btn btn-primary">Save</button><a href="{{ url_for('admin.payers') }}" class="btn btn-secondary">Cancel</a></form>
+{% endblock %}

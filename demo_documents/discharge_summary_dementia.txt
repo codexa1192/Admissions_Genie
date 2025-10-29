@@ -1,0 +1,116 @@
+================================================================================
+HOSPITAL DISCHARGE SUMMARY
+================================================================================
+
+Patient: Robert T. (DOB: REDACTED)
+Medical Record #: DEMO-003-2025
+Admission Date: February 3, 2025
+Discharge Date: February 10, 2025
+Length of Stay: 7 days
+
+ADMITTING DIAGNOSIS:
+- Fall with head trauma
+- Altered mental status
+
+DISCHARGE DIAGNOSES:
+1. Alzheimer's Dementia, moderate to severe (ICD-10: G30.9)
+2. Essential Hypertension (ICD-10: I10)
+3. Osteoporosis with history of fractures (ICD-10: M81.0)
+4. Unsteadiness on feet (ICD-10: R26.81)
+5. Urinary tract infection (ICD-10: N39.0) - resolved
+6. Delirium superimposed on dementia - resolved
+
+HOSPITAL COURSE:
+86-year-old male with advanced Alzheimer's dementia admitted after fall at assisted living facility with minor head laceration. CT head negative for intracranial bleeding. Found to have UTI contributing to acute delirium. Treated with Ceftriaxone IV x 5 days with resolution of infection and improvement in delirium. However, baseline cognitive and functional impairment profound. Family reports progressive decline over past year. Multiple care conferences held with family regarding long-term placement needs.
+
+BEHAVIORAL SUMMARY:
+- Periods of agitation and confusion, especially sundowning
+- Occasionally resistive to care
+- Responds to redirection and calm approach
+- No physical aggression toward staff
+- Requires one-to-one supervision for safety due to fall risk and wandering
+
+FUNCTIONAL STATUS:
+- Pre-admission: Total dependence for all ADLs at assisted living
+- At discharge: Total dependence for ADLs, requires 2-person transfer assist
+- Mobility: Non-ambulatory, uses wheelchair, cannot propel independently
+- Self-Care Score: 18/18 (Barthel Index - total dependence)
+- Cognition: Severely impaired, BIMS score 2/15, unable to follow simple commands consistently
+
+THERAPY EVALUATION SUMMARY:
+Physical Therapy:
+- Patient demonstrates severe functional decline
+- Unable to participate meaningfully in therapy due to cognitive impairment
+- Requires maximal assistance for all transfers
+- High fall risk with any mobility attempt
+- Poor rehabilitation potential
+- Recommend maintenance PT only if SNF chooses
+
+Occupational Therapy:
+- Totally dependent for all ADLs
+- No ability to participate in self-care training
+- Feeding requires total assist, risk of aspiration
+- Poor rehabilitation potential
+- Recommend maintenance OT for positioning and ADL assist only
+
+Speech Therapy:
+- Severe cognitive-linguistic deficits
+- Limited verbal output, mostly unintelligible
+- Difficulty with swallowing - thin liquids cause coughing
+- Recommend modified diet: nectar-thick liquids, mechanical soft solids
+- Recommend Speech therapy for swallowing safety assessment
+
+COGNITIVE/BEHAVIORAL STATUS:
+- Advanced dementia with profound memory loss
+- Does not recognize family members consistently
+- Requires extensive cueing and redirection for all tasks
+- Sleep-wake cycle disrupted, wanders at night if not supervised
+- Requires structured environment and behavioral management strategies
+
+MEDICATIONS AT DISCHARGE:
+1. Donepezil 10mg PO QHS (cholinesterase inhibitor for dementia)
+2. Amlodipine 5mg PO daily
+3. Calcium Carbonate 600mg + Vitamin D PO BID
+4. Lorazepam 0.5mg PO BID PRN agitation (use sparingly)
+5. Melatonin 5mg PO QHS for sleep
+6. Docusate Sodium 100mg PO BID
+7. Multivitamin 1 tablet PO daily
+
+SPECIAL CARE NEEDS:
+- Modified diet: Nectar-thick liquids, mechanical soft solids
+- Total assist for all ADLs including feeding
+- Two-person transfer assist for safety
+- Wheelchair mobility only
+- Fall precautions - high risk
+- Behavioral management for sundowning and agitation
+- Wander prevention - requires secure unit
+- Toileting schedule Q2H (incontinent of bowel and bladder)
+- Skin integrity monitoring - high risk for pressure injury
+
+DISPOSITION:
+Patient requires long-term skilled nursing care. Family has been counseled that patient's profound cognitive and functional decline precludes return to assisted living. Hospice evaluation recommended but family wishes to defer at this time. Discharge to skilled nursing facility for long-term custodial care.
+
+ESTIMATED CARE NEEDS:
+- Long-term placement likely
+- Low rehabilitation potential
+- Extensive assistance needs for all ADLs
+- Behavioral management required
+- Progressive disease expected
+
+FOLLOW-UP APPOINTMENTS:
+- Primary care physician follow-up in 6 weeks
+- No acute specialty follow-up needed at this time
+
+PROGNOSIS:
+Poor for functional recovery. Advanced Alzheimer's dementia with progressive decline expected. Family understands terminal nature of disease. Focus on comfort and quality of life. Re-evaluate hospice eligibility in 2-3 months.
+
+CARE CONFERENCE NOTES:
+Family meeting held 02/08/2025 with daughter (primary decision-maker), social work, case management, and physician. Discussed advanced care planning. Patient has DNR order. Family declines feeding tube if swallowing further deteriorates. Comfort-focused care preferred.
+
+Discharge completed by:
+Dr. Jennifer Williams, MD
+Geriatric Medicine
+Community General Hospital
+Date: February 10, 2025
+
+================================================================================

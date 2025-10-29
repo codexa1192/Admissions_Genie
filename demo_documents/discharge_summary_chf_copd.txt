@@ -1,0 +1,107 @@
+================================================================================
+HOSPITAL DISCHARGE SUMMARY
+================================================================================
+
+Patient: Mary S. (DOB: REDACTED)
+Medical Record #: DEMO-002-2025
+Admission Date: February 1, 2025
+Discharge Date: February 7, 2025
+Length of Stay: 6 days
+
+ADMITTING DIAGNOSIS:
+- Acute decompensated congestive heart failure (CHF)
+- Chronic obstructive pulmonary disease (COPD) exacerbation
+
+DISCHARGE DIAGNOSES:
+1. Congestive Heart Failure, acute on chronic, EF 35% (ICD-10: I50.9)
+2. Chronic Obstructive Pulmonary Disease with acute exacerbation (ICD-10: J44.1)
+3. Chronic Kidney Disease, Stage 3 (ICD-10: N18.3)
+4. Type 2 Diabetes Mellitus with insulin (ICD-10: E11.9)
+5. Hypertension (ICD-10: I10)
+
+HOSPITAL COURSE:
+82-year-old female with history of CHF, COPD, CKD presented with progressive dyspnea and lower extremity edema over 5 days. Admitted for diuresis and respiratory management. Responded well to IV Lasix with 8 kg weight loss. Supplemental oxygen via nasal cannula weaned from 4L to 2L. BNP decreased from 2,450 to 680. Creatinine initially elevated to 1.8, improved to baseline 1.3 with fluid management.
+
+FUNCTIONAL STATUS:
+- Pre-admission: Modified independent with ADLs, used walker for mobility
+- At discharge: Requires minimal to moderate assistance with ADLs due to deconditioning
+- Mobility: Ambulates 50 feet with walker and supervision
+- Self-Care Score: 11/18 (Barthel Index)
+- Cognition: Mild cognitive impairment, BIMS score 10/15
+
+THERAPY EVALUATION SUMMARY:
+Physical Therapy:
+- Significantly deconditioned from hospital stay and acute illness
+- Gait: slow, steady with rolling walker
+- Endurance: Limited to 50-100 feet due to dyspnea
+- Balance: Fair, requires walker for all mobility
+- Recommend PT 5x/week for endurance training and strengthening
+
+Occupational Therapy:
+- Requires setup and cueing for bathing
+- Able to dress upper body independently, needs assist with lower body
+- Energy conservation techniques needed
+- Recommend OT 3x/week for ADL training and energy conservation
+
+Speech Therapy:
+- No swallowing difficulties
+- Mild word-finding difficulties consistent with mild cognitive impairment
+- No speech therapy recommended at this time
+
+RESPIRATORY STATUS:
+- Requires 2L O2 via nasal cannula for O2 sat >90%
+- Dyspnea with exertion, improves with rest
+- Lung sounds: diminished bilaterally, no wheezes or rales
+- Can manage nebulizer treatments independently
+
+MEDICATIONS AT DISCHARGE:
+1. Furosemide 40mg PO BID
+2. Lisinopril 10mg PO daily
+3. Carvedilol 6.25mg PO BID
+4. Albuterol nebulizer Q4H and PRN
+5. Ipratropium nebulizer Q6H
+6. Insulin Glargine 20 units SC QHS
+7. Insulin Lispro per sliding scale
+8. Potassium Chloride 20mEq PO daily
+9. Atorvastatin 40mg PO QHS
+
+SPECIAL CARE NEEDS:
+- Daily weights (notify MD if >3lb gain in 24hr or >5lb gain in week)
+- Strict I&O monitoring
+- Fluid restriction: 1500mL/day
+- 2 gram sodium diet
+- O2 via nasal cannula 2L continuous, monitor O2 sat >90%
+- Blood glucose monitoring AC and HS
+- Fall precautions
+- Nebulizer treatments as ordered
+
+CARDIOPULMONARY MONITORING:
+- Daily weight and volume status assessment
+- Monitor for worsening dyspnea, edema, orthopnea
+- Telemetry not required at SNF
+- BNP recheck in 2 weeks
+
+DISPOSITION:
+Patient discharged to skilled nursing facility for continued rehabilitation, cardiopulmonary monitoring, and medication management. Goal is to regain functional independence and optimize CHF/COPD management for safe return home.
+
+ESTIMATED REHABILITATION NEEDS:
+- Projected Length of Stay: 18-21 days
+- PT/OT for functional restoration
+- Cardiopulmonary monitoring
+- Medication optimization
+
+FOLLOW-UP APPOINTMENTS:
+- Cardiology follow-up in 2 weeks
+- Primary care physician follow-up in 3 weeks
+- INR check not required (not on anticoagulation)
+
+PROGNOSIS:
+Fair for functional recovery. Multiple comorbidities create ongoing care complexity. Patient historically manages chronic conditions well at home with support from daughter. Goal discharge to home with home health services.
+
+Discharge completed by:
+Dr. Michael Chen, MD
+Internal Medicine
+St. Mary's Medical Center
+Date: February 7, 2025
+
+================================================================================
