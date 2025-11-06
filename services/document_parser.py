@@ -19,13 +19,20 @@ class DocumentParser:
     """Parser for discharge documents (PDF, Word, images)."""
 
     def __init__(self):
-        """Initialize document parser with Azure OpenAI client."""
-        self.client = AzureOpenAI(
-            api_key=Config.AZURE_OPENAI_API_KEY,
-            api_version=Config.AZURE_OPENAI_API_VERSION,
-            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT
-        )
-        self.deployment_name = Config.AZURE_OPENAI_DEPLOYMENT_NAME
+        """Initialize document parser with Azure OpenAI client (if configured)."""
+        # Check if Azure OpenAI is configured
+        if Config.AZURE_OPENAI_API_KEY and Config.AZURE_OPENAI_ENDPOINT:
+            self.client = AzureOpenAI(
+                api_key=Config.AZURE_OPENAI_API_KEY,
+                api_version=Config.AZURE_OPENAI_API_VERSION,
+                azure_endpoint=Config.AZURE_OPENAI_ENDPOINT
+            )
+            self.deployment_name = Config.AZURE_OPENAI_DEPLOYMENT_NAME
+            self.ai_enabled = True
+        else:
+            self.client = None
+            self.deployment_name = None
+            self.ai_enabled = False
 
     def parse_file(self, file_path: str) -> str:
         """
@@ -106,6 +113,12 @@ class DocumentParser:
 
         Cost: ~$0.50-1.00 per admission (GPT-4 Turbo)
         """
+        # If Azure OpenAI is not configured, return error
+        if not self.ai_enabled:
+            raise ValueError(
+                "Azure OpenAI not configured. Document upload requires Azure OpenAI API credentials. "
+                "The application is running in DEMO MODE with pre-loaded sample admissions only."
+            )
         extraction_prompt = f"""
 You are a clinical data extraction expert for SNF admissions. Extract the following information from this discharge document:
 

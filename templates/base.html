@@ -32,11 +32,19 @@
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
+                        {% if config.AZURE_OPENAI_API_KEY %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admission.new_admission') }}">
                                 <i class="fas fa-plus-circle"></i> New Admission
                             </a>
                         </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <span class="nav-link text-muted" title="Document upload disabled - Azure OpenAI not configured">
+                                <i class="fas fa-plus-circle"></i> New Admission (Demo Mode)
+                            </span>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admission.admission_history') }}">
                                 <i class="fas fa-history"></i> History

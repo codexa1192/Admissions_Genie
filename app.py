@@ -158,28 +158,25 @@ with app.app_context():
 
 
 if __name__ == '__main__':
-    # Validate required environment variables for demo
-    required_vars = {
-        'AZURE_OPENAI_API_KEY': 'Azure OpenAI API key for document extraction',
-        'AZURE_OPENAI_ENDPOINT': 'Azure OpenAI endpoint URL',
-        'AZURE_OPENAI_DEPLOYMENT': 'Azure OpenAI deployment name (e.g., gpt-4-turbo)'
-    }
+    # Check for Azure OpenAI configuration (optional for demo mode)
+    azure_configured = all([
+        os.getenv('AZURE_OPENAI_API_KEY'),
+        os.getenv('AZURE_OPENAI_ENDPOINT'),
+        os.getenv('AZURE_OPENAI_DEPLOYMENT')
+    ])
 
-    missing_vars = []
-    for var, description in required_vars.items():
-        if not os.getenv(var):
-            missing_vars.append(f"  - {var}: {description}")
-
-    if missing_vars:
+    if not azure_configured:
         print("\n" + "="*70)
-        print("⚠️  CONFIGURATION ERROR - Missing Required Environment Variables")
+        print("⚠️  DEMO MODE - Azure OpenAI Not Configured")
         print("="*70)
-        print("\nThe following environment variables are required but not set:\n")
-        print("\n".join(missing_vars))
-        print("\nPlease set these variables in your .env file or environment.")
-        print("See .env.example for reference.")
+        print("\nRunning in DEMO MODE with pre-loaded sample admissions.")
+        print("Document upload feature will be disabled.")
+        print("\nTo enable document upload, set these environment variables:")
+        print("  - AZURE_OPENAI_API_KEY")
+        print("  - AZURE_OPENAI_ENDPOINT")
+        print("  - AZURE_OPENAI_DEPLOYMENT")
+        print("\nSee .env.example for reference.")
         print("="*70 + "\n")
-        sys.exit(1)
 
     # Run the application
     port = int(os.getenv('PORT', 5000))
