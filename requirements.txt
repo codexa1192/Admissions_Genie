@@ -16,7 +16,7 @@ psycopg2-binary==2.9.9
 # Document Processing (local, no cloud costs except Azure OpenAI)
 PyPDF2==3.0.1           # PDF parsing
 python-docx==1.1.0      # Word doc parsing
-Pillow==10.0.0          # Image processing
+Pillow==10.4.0          # Image processing (compatible with Python 3.13)
 pytesseract==0.3.10     # OCR (free, uses Tesseract)
 
 # Azure OpenAI (ONLY RECURRING COST - for intelligent extraction)
