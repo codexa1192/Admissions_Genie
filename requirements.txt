@@ -28,3 +28,9 @@ pandas==2.2.3           # CSV handling and data manipulation
 # Utilities
 Werkzeug==2.3.7
 requests==2.31.0
+
+# Production Infrastructure
+boto3==1.28.0  # AWS S3 for file storage
+celery==5.3.4  # Background task processing
+redis==5.0.1  # Task queue backend
+sentry-sdk[flask]==1.39.0  # Error tracking

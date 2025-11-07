@@ -35,6 +35,24 @@ class Config:
     ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'pdf,docx,doc,jpg,jpeg,png').split(','))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'uploads')
 
+    # AWS S3 settings (production file storage)
+    USE_S3 = os.getenv('USE_S3', 'false').lower() == 'true'
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_S3_BUCKET = os.getenv('AWS_S3_BUCKET', 'admissions-genie-uploads')
+    AWS_S3_REGION = os.getenv('AWS_S3_REGION', 'us-east-1')
+    AWS_S3_ENCRYPTION = 'AES256'  # Server-side encryption
+
+    # Celery/Redis settings (background tasks)
+    CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+    # Sentry error tracking
+    SENTRY_DSN = os.getenv('SENTRY_DSN')
+
+    # Session timeout (HIPAA requirement: 15 minutes idle)
+    SESSION_TIMEOUT_MINUTES = int(os.getenv('SESSION_TIMEOUT_MINUTES', '15'))
+
     # PHI protection
     PHI_STRICT_MODE = os.getenv('PHI_STRICT_MODE', 'false').lower() == 'true'
 
