@@ -7,9 +7,15 @@ import sqlite3
 import os
 from contextlib import contextmanager
 from typing import Optional
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from config.settings import Config
+
+# Only import psycopg2 if we're actually using PostgreSQL
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    HAS_PSYCOPG2 = True
+except ImportError:
+    HAS_PSYCOPG2 = False
 
 
 class Database:
@@ -38,6 +44,8 @@ class Database:
                 results = cursor.fetchall()
         """
         if self.is_postgres:
+            if not HAS_PSYCOPG2:
+                raise ImportError("psycopg2 is required for PostgreSQL connections but is not installed")
             conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
         else:
             # Extract path from sqlite:///path/to/db
