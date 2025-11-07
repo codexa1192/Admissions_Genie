@@ -9,13 +9,14 @@ from contextlib import contextmanager
 from typing import Optional
 from config.settings import Config
 
-# Only import psycopg2 if we're actually using PostgreSQL
+# Only import psycopg if we're actually using PostgreSQL
+# Using psycopg v3 (compatible with Python 3.13)
 try:
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    HAS_PSYCOPG2 = True
+    import psycopg
+    from psycopg.rows import dict_row
+    HAS_PSYCOPG = True
 except ImportError:
-    HAS_PSYCOPG2 = False
+    HAS_PSYCOPG = False
 
 
 class Database:
@@ -44,9 +45,9 @@ class Database:
                 results = cursor.fetchall()
         """
         if self.is_postgres:
-            if not HAS_PSYCOPG2:
-                raise ImportError("psycopg2 is required for PostgreSQL connections but is not installed")
-            conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
+            if not HAS_PSYCOPG:
+                raise ImportError("psycopg is required for PostgreSQL connections but is not installed")
+            conn = psycopg.connect(self.database_url, row_factory=dict_row)
         else:
             # Extract path from sqlite:///path/to/db
             db_path = self.database_url.replace('sqlite:///', '')

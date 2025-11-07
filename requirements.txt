@@ -11,7 +11,8 @@ bleach==6.0.0
 cryptography==41.0.4
 
 # Database (supports both SQLite and PostgreSQL)
-psycopg2-binary==2.9.9
+# Using psycopg (v3) for Python 3.13 compatibility
+psycopg[binary]==3.2.3
 
 # Document Processing (local, no cloud costs except Azure OpenAI)
 PyPDF2==3.0.1           # PDF parsing
