@@ -91,6 +91,11 @@ class Database:
         Returns:
             Query results based on fetch parameter
         """
+        # For PostgreSQL INSERTs, add RETURNING id to get the inserted ID
+        if fetch == 'none' and self.is_postgres and 'INSERT INTO' in query.upper():
+            if 'RETURNING' not in query.upper():
+                query = query.rstrip('; \n') + ' RETURNING id'
+
         query = self._convert_placeholders(query)
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -101,7 +106,13 @@ class Database:
             elif fetch == 'one':
                 return cursor.fetchone()
             elif fetch == 'none':
-                return cursor.lastrowid
+                if self.is_postgres:
+                    # PostgreSQL: fetch the RETURNING id result
+                    result = cursor.fetchone()
+                    return result['id'] if result else None
+                else:
+                    # SQLite: use lastrowid
+                    return cursor.lastrowid
             else:
                 raise ValueError(f"Invalid fetch parameter: {fetch}")
 
