@@ -35,13 +35,19 @@ class Config:
     ALLOWED_EXTENSIONS = set(os.getenv('ALLOWED_EXTENSIONS', 'pdf,docx,doc,jpg,jpeg,png').split(','))
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'uploads')
 
-    # AWS S3 settings (production file storage)
+    # AWS S3 settings (production file storage - option 1)
     USE_S3 = os.getenv('USE_S3', 'false').lower() == 'true'
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     AWS_S3_BUCKET = os.getenv('AWS_S3_BUCKET', 'admissions-genie-uploads')
     AWS_S3_REGION = os.getenv('AWS_S3_REGION', 'us-east-1')
     AWS_S3_ENCRYPTION = 'AES256'  # Server-side encryption
+
+    # Azure Blob Storage settings (production file storage - option 2)
+    USE_AZURE = os.getenv('USE_AZURE', 'false').lower() == 'true'
+    AZURE_STORAGE_ACCOUNT_NAME = os.getenv('AZURE_STORAGE_ACCOUNT_NAME')
+    AZURE_STORAGE_ACCOUNT_KEY = os.getenv('AZURE_STORAGE_ACCOUNT_KEY')
+    AZURE_STORAGE_CONTAINER_NAME = os.getenv('AZURE_STORAGE_CONTAINER_NAME', 'admissions-genie-uploads')
 
     # Celery/Redis settings (background tasks)
     CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')

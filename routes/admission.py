@@ -78,9 +78,9 @@ def new_admission():
             all_extracted_data = {}
             for file_key in saved_file_paths:
                 try:
-                    # Get file from storage (S3 or local)
-                    if file_key.startswith('s3://'):
-                        # For S3 files, download to temp location for parsing
+                    # Get file from storage (S3, Azure, or local)
+                    if file_key.startswith('s3://') or file_key.startswith('azure://'):
+                        # For cloud storage, download to temp location for parsing
                         import tempfile
                         file_content = file_storage.get_file(file_key)
                         with tempfile.NamedTemporaryFile(delete=False, suffix='.tmp') as tmp_file:

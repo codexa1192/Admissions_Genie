@@ -1,24 +1,43 @@
 """
-File storage service supporting both local filesystem and AWS S3.
-Automatically uses S3 in production when configured.
+File storage service supporting local filesystem, AWS S3, and Azure Blob Storage.
+Automatically uses cloud storage in production when configured.
 """
 
 import os
-import boto3
-from botocore.exceptions import ClientError
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from config.settings import Config
 
+# Conditionally import cloud storage libraries
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+    HAS_BOTO3 = True
+except ImportError:
+    HAS_BOTO3 = False
+
+try:
+    from azure.storage.blob import BlobServiceClient, ContentSettings
+    HAS_AZURE = True
+except ImportError:
+    HAS_AZURE = False
+
 
 class FileStorage:
-    """Unified file storage interface supporting local and S3 storage."""
+    """Unified file storage interface supporting local, S3, and Azure Blob storage."""
 
     def __init__(self):
         """Initialize file storage based on configuration."""
         self.use_s3 = Config.USE_S3
+        self.use_azure = Config.USE_AZURE
+
+        # Validate configuration
+        if self.use_s3 and self.use_azure:
+            raise ValueError("Cannot use both S3 and Azure Blob Storage. Set only one.")
 
         if self.use_s3:
+            if not HAS_BOTO3:
+                raise ImportError("boto3 is required for S3 storage. Install with: pip install boto3")
             self.s3_client = boto3.client(
                 's3',
                 aws_access_key_id=Config.AWS_ACCESS_KEY_ID,
@@ -26,7 +45,16 @@ class FileStorage:
                 region_name=Config.AWS_S3_REGION
             )
             self.bucket = Config.AWS_S3_BUCKET
+        elif self.use_azure:
+            if not HAS_AZURE:
+                raise ImportError("azure-storage-blob is required for Azure storage. Install with: pip install azure-storage-blob")
+            self.blob_service_client = BlobServiceClient(
+                account_url=f"https://{Config.AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net",
+                credential=Config.AZURE_STORAGE_ACCOUNT_KEY
+            )
+            self.container_name = Config.AZURE_STORAGE_CONTAINER_NAME
         else:
+            # Local storage
             self.s3_client = None
             self.bucket = None
             # Ensure upload folder exists for local storage
@@ -56,6 +84,8 @@ class FileStorage:
 
         if self.use_s3:
             return self._save_to_s3(file, unique_filename)
+        elif self.use_azure:
+            return self._save_to_azure(file, unique_filename)
         else:
             return self._save_to_local(file, unique_filename)
 
@@ -74,6 +104,31 @@ class FileStorage:
             return f"s3://{self.bucket}/{filename}"
         except ClientError as e:
             raise Exception(f"Failed to upload to S3: {str(e)}")
+
+    def _save_to_azure(self, file, filename: str) -> str:
+        """Save file to Azure Blob Storage with encryption."""
+        try:
+            blob_client = self.blob_service_client.get_blob_client(
+                container=self.container_name,
+                blob=filename
+            )
+
+            # Upload with content type
+            content_settings = ContentSettings(content_type=file.content_type or 'application/octet-stream')
+
+            # Reset file pointer to beginning
+            file.seek(0)
+
+            # Upload to Azure (encryption is automatic at storage account level)
+            blob_client.upload_blob(
+                file,
+                overwrite=True,
+                content_settings=content_settings
+            )
+
+            return f"azure://{self.container_name}/{filename}"
+        except Exception as e:
+            raise Exception(f"Failed to upload to Azure Blob Storage: {str(e)}")
 
     def _save_to_local(self, file, filename: str) -> str:
         """Save file to local filesystem."""
@@ -96,6 +151,8 @@ class FileStorage:
         """
         if file_key.startswith('s3://'):
             return self._get_from_s3(file_key)
+        elif file_key.startswith('azure://'):
+            return self._get_from_azure(file_key)
         else:
             return self._get_from_local(file_key)
 
@@ -109,6 +166,21 @@ class FileStorage:
             return response['Body'].read()
         except ClientError as e:
             raise Exception(f"Failed to retrieve from S3: {str(e)}")
+
+    def _get_from_azure(self, azure_key: str) -> bytes:
+        """Retrieve file from Azure Blob Storage."""
+        # Parse azure://container/blob format
+        blob_name = azure_key.replace(f"azure://{self.container_name}/", "")
+
+        try:
+            blob_client = self.blob_service_client.get_blob_client(
+                container=self.container_name,
+                blob=blob_name
+            )
+            download_stream = blob_client.download_blob()
+            return download_stream.readall()
+        except Exception as e:
+            raise Exception(f"Failed to retrieve from Azure Blob Storage: {str(e)}")
 
     def _get_from_local(self, filepath: str) -> bytes:
         """Retrieve file from local filesystem."""
@@ -131,6 +203,8 @@ class FileStorage:
         try:
             if file_key.startswith('s3://'):
                 return self._delete_from_s3(file_key)
+            elif file_key.startswith('azure://'):
+                return self._delete_from_azure(file_key)
             else:
                 return self._delete_from_local(file_key)
         except Exception:
@@ -143,6 +217,19 @@ class FileStorage:
             self.s3_client.delete_object(Bucket=self.bucket, Key=key)
             return True
         except ClientError:
+            return False
+
+    def _delete_from_azure(self, azure_key: str) -> bool:
+        """Delete file from Azure Blob Storage."""
+        blob_name = azure_key.replace(f"azure://{self.container_name}/", "")
+        try:
+            blob_client = self.blob_service_client.get_blob_client(
+                container=self.container_name,
+                blob=blob_name
+            )
+            blob_client.delete_blob()
+            return True
+        except Exception:
             return False
 
     def _delete_from_local(self, filepath: str) -> bool:
@@ -169,6 +256,13 @@ class FileStorage:
                 key = file_key.replace(f"s3://{self.bucket}/", "")
                 self.s3_client.head_object(Bucket=self.bucket, Key=key)
                 return True
+            elif file_key.startswith('azure://'):
+                blob_name = file_key.replace(f"azure://{self.container_name}/", "")
+                blob_client = self.blob_service_client.get_blob_client(
+                    container=self.container_name,
+                    blob=blob_name
+                )
+                return blob_client.exists()
             else:
                 return os.path.exists(file_key)
         except:

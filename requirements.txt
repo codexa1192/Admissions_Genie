@@ -30,7 +30,8 @@ Werkzeug==2.3.7
 requests==2.31.0
 
 # Production Infrastructure
-boto3==1.28.0  # AWS S3 for file storage
+boto3==1.28.0  # AWS S3 for file storage (optional)
+azure-storage-blob==12.19.0  # Azure Blob Storage (optional)
 celery==5.3.4  # Background task processing
 redis==5.0.1  # Task queue backend
 sentry-sdk[flask]==1.39.0  # Error tracking
