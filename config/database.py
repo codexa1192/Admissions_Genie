@@ -32,6 +32,20 @@ class Database:
         self.database_url = database_url or Config.DATABASE_URL
         self.is_postgres = self.database_url.startswith('postgresql://')
 
+    def _convert_placeholders(self, query: str) -> str:
+        """
+        Convert SQLite-style ? placeholders to PostgreSQL-style %s placeholders.
+
+        Args:
+            query: SQL query with ? placeholders
+
+        Returns:
+            Query with appropriate placeholders for the database type
+        """
+        if self.is_postgres:
+            return query.replace('?', '%s')
+        return query
+
     @contextmanager
     def get_connection(self):
         """
@@ -70,13 +84,14 @@ class Database:
         Execute a query and return results.
 
         Args:
-            query: SQL query string
+            query: SQL query string (with ? placeholders, auto-converted for PostgreSQL)
             params: Query parameters (optional)
             fetch: 'all', 'one', or 'none' (default: 'all')
 
         Returns:
             Query results based on fetch parameter
         """
+        query = self._convert_placeholders(query)
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params or ())
@@ -95,9 +110,10 @@ class Database:
         Execute a query multiple times with different parameters.
 
         Args:
-            query: SQL query string
+            query: SQL query string (with ? placeholders, auto-converted for PostgreSQL)
             params_list: List of parameter tuples
         """
+        query = self._convert_placeholders(query)
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany(query, params_list)
