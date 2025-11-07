@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from functools import wraps
 
 from models.user import User
+from utils.audit_logger import log_authentication, log_audit_event
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -62,9 +63,14 @@ def login():
             # Update last login
             user.update_last_login()
 
+            # HIPAA audit log: successful login
+            log_authentication(user.id, 'login_success')
+
             flash(f'Welcome back, {user.full_name or user.email}!', 'success')
             return redirect(url_for('dashboard'))
         else:
+            # HIPAA audit log: failed login attempt
+            log_authentication(None, 'login_failed', details={'email': email})
             flash('Invalid email or password.', 'danger')
 
     return render_template('login.html')
@@ -126,6 +132,10 @@ def register():
 @auth_bp.route('/logout')
 def logout():
     """User logout handler."""
+    # HIPAA audit log: logout (before clearing session)
+    if 'user_id' in session:
+        log_authentication(session['user_id'], 'logout')
+
     session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
@@ -191,6 +201,14 @@ def change_password():
         # Update password
         try:
             user.update_password(new_password)
+
+            # HIPAA audit log: password change
+            log_audit_event(
+                action='password_changed',
+                resource_type='user',
+                resource_id=user.id
+            )
+
             flash('Password changed successfully!', 'success')
             return redirect(url_for('auth.profile'))
 

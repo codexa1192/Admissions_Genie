@@ -7,13 +7,27 @@ import os
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, render_template, session, request
+from flask import Flask, render_template, session, request, redirect
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from config.settings import config
+from config.settings import config, Config
 from config.database import init_db
+from middleware.session_timeout import init_session_timeout
+
+# Initialize Sentry for error tracking (production only)
+if Config.SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=Config.SENTRY_DSN,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.1,
+        environment=os.getenv('FLASK_ENV', 'development'),
+        before_send=lambda event, hint: None if Config.FLASK_ENV == 'development' else event
+    )
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -33,6 +47,18 @@ limiter = Limiter(
     default_limits=[app.config['RATELIMIT_DEFAULT']],
     storage_uri=app.config['RATELIMIT_STORAGE_URL']
 )
+
+# Initialize session timeout middleware (HIPAA requirement: 15-minute idle timeout)
+init_session_timeout(app)
+
+# Force HTTPS in production
+if Config.FLASK_ENV == 'production':
+    @app.before_request
+    def force_https():
+        """Redirect HTTP to HTTPS in production."""
+        if not request.is_secure and request.headers.get('X-Forwarded-Proto', 'http') != 'https':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
 
 # Set up logging
 if not app.debug:
@@ -58,10 +84,12 @@ try:
     from routes.auth import auth_bp
     from routes.admission import admission_bp
     from routes.admin import admin_bp
+    from routes.health import health_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admission_bp, url_prefix='/admission')
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(health_bp)  # Health checks at /health
 
     app.logger.info('All blueprints registered successfully')
 except ImportError as e:
@@ -90,12 +118,6 @@ def dashboard():
     recent_admissions = Admission.get_recent(limit=10)
 
     return render_template('dashboard.html', user=user, recent_admissions=recent_admissions)
-
-
-@app.route('/health')
-def health_check():
-    """Health check endpoint for monitoring."""
-    return {'status': 'healthy', 'version': '1.0.0'}, 200
 
 
 # Error handlers

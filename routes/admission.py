@@ -5,7 +5,7 @@ Admission workflow routes for document upload, analysis, and decision tracking.
 import os
 import json
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from werkzeug.utils import secure_filename
 
 from routes.auth import login_required
@@ -19,6 +19,8 @@ from services.pdpm_classifier import PDPMClassifier
 from services.reimbursement_calc import ReimbursementCalculator
 from services.cost_estimator import CostEstimator
 from services.scoring_engine import ScoringEngine
+from services.file_storage import FileStorage
+from utils.audit_logger import log_audit_event
 from config.settings import Config
 
 admission_bp = Blueprint('admission', __name__)
@@ -44,7 +46,8 @@ def new_admission():
             auth_status = request.form.get('auth_status', 'unknown')
             current_census_pct = float(request.form.get('current_census_pct', 85.0))
 
-            # Handle file uploads
+            # Handle file uploads using FileStorage (S3 or local)
+            file_storage = FileStorage()
             uploaded_files = {}
             saved_file_paths = []
 
@@ -52,17 +55,13 @@ def new_admission():
                 files = request.files.getlist(field_name)
                 for file in files:
                     if file and file.filename and allowed_file(file.filename):
-                        filename = secure_filename(file.filename)
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        unique_filename = f"{timestamp}_{filename}"
-                        filepath = os.path.join(Config.UPLOAD_FOLDER, unique_filename)
-
-                        file.save(filepath)
-                        saved_file_paths.append(filepath)
+                        # Use FileStorage service (handles S3 or local storage)
+                        file_key = file_storage.save_file(file, file.filename)
+                        saved_file_paths.append(file_key)
 
                         if field_name not in uploaded_files:
                             uploaded_files[field_name] = []
-                        uploaded_files[field_name].append(filepath)
+                        uploaded_files[field_name].append(file_key)
 
             if not saved_file_paths:
                 flash('Please upload at least one document (PDF, Word, or image file). Supported formats: .pdf, .docx, .doc, .png, .jpg, .jpeg', 'danger')
@@ -77,13 +76,26 @@ def new_admission():
 
             # Step 1: Parse and extract clinical features from documents
             all_extracted_data = {}
-            for file_path in saved_file_paths:
+            for file_key in saved_file_paths:
                 try:
-                    extracted = parser.parse_and_extract(file_path)
+                    # Get file from storage (S3 or local)
+                    if file_key.startswith('s3://'):
+                        # For S3 files, download to temp location for parsing
+                        import tempfile
+                        file_content = file_storage.get_file(file_key)
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.tmp') as tmp_file:
+                            tmp_file.write(file_content)
+                            temp_path = tmp_file.name
+                        extracted = parser.parse_and_extract(temp_path)
+                        os.unlink(temp_path)  # Clean up temp file
+                    else:
+                        # Local file, use directly
+                        extracted = parser.parse_and_extract(file_key)
+
                     # Merge extracted data (later files can override earlier ones)
                     all_extracted_data.update(extracted)
                 except Exception as e:
-                    flash(f'Error parsing {os.path.basename(file_path)}: {str(e)}', 'warning')
+                    flash(f'Error parsing {file_key.split("/")[-1]}: {str(e)}', 'warning')
 
             if not all_extracted_data:
                 flash('Failed to extract clinical data from documents. Please ensure the discharge summary contains patient diagnoses, functional status, and therapy needs. If the problem persists, check your Azure OpenAI configuration.', 'danger')
@@ -210,6 +222,19 @@ def new_admission():
                 explanation=explanation
             )
 
+            # HIPAA audit log: admission created with PHI access
+            log_audit_event(
+                action='admission_created',
+                resource_type='admission',
+                resource_id=admission.id,
+                changes={
+                    'patient_initials': patient_initials,
+                    'facility_id': facility_id,
+                    'margin_score': margin_score,
+                    'recommendation': recommendation
+                }
+            )
+
             flash('Admission analysis complete!', 'success')
             return redirect(url_for('admission.view_admission', admission_id=admission.id))
 
@@ -235,6 +260,14 @@ def view_admission(admission_id):
     if not admission:
         flash('Admission not found.', 'danger')
         return redirect(url_for('dashboard'))
+
+    # HIPAA audit log: PHI accessed
+    log_audit_event(
+        action='admission_viewed',
+        resource_type='admission',
+        resource_id=admission_id,
+        changes={'patient_initials': admission.patient_initials}
+    )
 
     # Get facility and payer details
     facility = Facility.get_by_id(admission.facility_id)
@@ -266,6 +299,18 @@ def record_decision(admission_id):
 
     try:
         admission.record_decision(decision, session['user_id'])
+
+        # HIPAA audit log: decision recorded
+        log_audit_event(
+            action='admission_decision_recorded',
+            resource_type='admission',
+            resource_id=admission_id,
+            changes={
+                'decision': decision,
+                'patient_initials': admission.patient_initials
+            }
+        )
+
         flash(f'Decision recorded: {decision}', 'success')
     except Exception as e:
         flash(f'Error recording decision: {str(e)}', 'danger')
