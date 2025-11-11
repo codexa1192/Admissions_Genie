@@ -92,7 +92,8 @@ class Database:
             Query results based on fetch parameter
         """
         # For PostgreSQL INSERTs, add RETURNING id to get the inserted ID
-        if fetch == 'none' and self.is_postgres and 'INSERT INTO' in query.upper():
+        is_insert = 'INSERT INTO' in query.upper()
+        if fetch == 'none' and self.is_postgres and is_insert:
             if 'RETURNING' not in query.upper():
                 query = query.rstrip('; \n') + ' RETURNING id'
 
@@ -106,13 +107,16 @@ class Database:
             elif fetch == 'one':
                 return cursor.fetchone()
             elif fetch == 'none':
-                if self.is_postgres:
-                    # PostgreSQL: fetch the RETURNING id result
+                if self.is_postgres and is_insert:
+                    # PostgreSQL INSERT: fetch the RETURNING id result
                     result = cursor.fetchone()
                     return result['id'] if result else None
-                else:
-                    # SQLite: use lastrowid
+                elif not self.is_postgres and is_insert:
+                    # SQLite INSERT: use lastrowid
                     return cursor.lastrowid
+                else:
+                    # UPDATE/DELETE or other non-INSERT: return None
+                    return None
             else:
                 raise ValueError(f"Invalid fetch parameter: {fetch}")
 
