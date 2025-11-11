@@ -283,8 +283,10 @@ def new_admission():
             return redirect(url_for('admission.new_admission'))
 
     # GET request - show upload form
-    facilities = Facility.get_all()
-    payers = Payer.get_all()
+    # Get current user's organization for multi-tenant data
+    current_user = User.get_by_id(session['user_id'])
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
+    payers = Payer.get_all(organization_id=current_user.organization_id)
 
     return render_template('admission/new.html', facilities=facilities, payers=payers)
 
@@ -362,12 +364,14 @@ def record_decision(admission_id):
 @login_required
 def admission_history():
     """View admission history."""
+    # Get current user's organization for multi-tenant data
+    current_user = User.get_by_id(session['user_id'])
     facility_id = session.get('facility_id')
 
     if facility_id:
         admissions = Admission.get_all_for_facility(facility_id, limit=50)
     else:
-        admissions = Admission.get_recent(limit=50)
+        admissions = Admission.get_recent(organization_id=current_user.organization_id, limit=50)
 
     # Get facility and payer details for each admission
     admission_details = []

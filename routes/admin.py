@@ -7,7 +7,7 @@ import csv
 import io
 import json
 from datetime import date, datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, session
 
 from routes.auth import admin_required
 from models.facility import Facility
@@ -24,9 +24,11 @@ admin_bp = Blueprint('admin', __name__)
 @admin_required
 def dashboard():
     """Admin dashboard."""
-    facilities = Facility.get_all()
-    payers = Payer.get_all()
-    users = User.get_all()
+    # Get current user's organization for multi-tenant data
+    current_user = User.get_by_id(session['user_id'])
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
+    payers = Payer.get_all(organization_id=current_user.organization_id)
+    users = User.get_all(organization_id=current_user.organization_id)
 
     stats = {
         'total_facilities': len(facilities),
@@ -44,7 +46,8 @@ def dashboard():
 @admin_required
 def facilities():
     """List all facilities."""
-    facilities = Facility.get_all()
+    current_user = User.get_by_id(session['user_id'])
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
     return render_template('admin/facilities.html', facilities=facilities)
 
 
@@ -138,7 +141,8 @@ def edit_facility(facility_id):
 @admin_required
 def payers():
     """List all payers."""
-    payers = Payer.get_all()
+    current_user = User.get_by_id(session['user_id'])
+    payers = Payer.get_all(organization_id=current_user.organization_id)
     return render_template('admin/payers.html', payers=payers)
 
 
@@ -213,6 +217,7 @@ def edit_payer(payer_id):
 @admin_required
 def rates():
     """List all rates."""
+    current_user = User.get_by_id(session['user_id'])
     facility_id = request.args.get('facility_id', type=int)
 
     if facility_id:
@@ -222,7 +227,7 @@ def rates():
         facility = None
         rates_list = []
 
-    facilities = Facility.get_all()
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
 
     return render_template('admin/rates.html', rates=rates_list, facilities=facilities,
                           selected_facility=facility)
@@ -322,8 +327,9 @@ def upload_rates():
             import traceback
             traceback.print_exc()
 
-    facilities = Facility.get_all()
-    payers = Payer.get_all()
+    current_user = User.get_by_id(session['user_id'])
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
+    payers = Payer.get_all(organization_id=current_user.organization_id)
 
     return render_template('admin/upload_rates.html', facilities=facilities, payers=payers,
                           rate_types=Rate.RATE_TYPES)
@@ -335,6 +341,7 @@ def upload_rates():
 @admin_required
 def cost_models():
     """List cost models."""
+    current_user = User.get_by_id(session['user_id'])
     facility_id = request.args.get('facility_id', type=int)
 
     if facility_id:
@@ -344,7 +351,7 @@ def cost_models():
         facility = None
         cost_models_list = []
 
-    facilities = Facility.get_all()
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
 
     return render_template('admin/cost_models.html', cost_models=cost_models_list,
                           facilities=facilities, selected_facility=facility)
@@ -382,7 +389,8 @@ def new_cost_model():
         except Exception as e:
             flash(f'Error creating cost model: {str(e)}', 'danger')
 
-    facilities = Facility.get_all()
+    current_user = User.get_by_id(session['user_id'])
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
     return render_template('admin/cost_model_form.html', cost_model=None,
                           facilities=facilities, acuity_bands=CostModel.ACUITY_BANDS)
 
@@ -423,7 +431,8 @@ def edit_cost_model(cost_model_id):
         except Exception as e:
             flash(f'Error updating cost model: {str(e)}', 'danger')
 
-    facilities = Facility.get_all()
+    current_user = User.get_by_id(session['user_id'])
+    facilities = Facility.get_all(organization_id=current_user.organization_id)
     return render_template('admin/cost_model_form.html', cost_model=cost_model,
                           facilities=facilities, acuity_bands=CostModel.ACUITY_BANDS)
 
@@ -434,7 +443,8 @@ def edit_cost_model(cost_model_id):
 @admin_required
 def users():
     """List all users."""
-    users_list = User.get_all()
+    current_user = User.get_by_id(session['user_id'])
+    users_list = User.get_all(organization_id=current_user.organization_id)
     return render_template('admin/users.html', users=users_list)
 
 

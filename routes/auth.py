@@ -179,7 +179,9 @@ def register():
 
     # Get facilities for dropdown
     from models.facility import Facility
-    facilities = Facility.get_all()
+    # For registration, we need a default organization (will be improved with proper org selection)
+    # For now, get facilities from organization_id=1 (default organization)
+    facilities = Facility.get_all(organization_id=1)
 
     return render_template('register.html', facilities=facilities)
 
@@ -221,7 +223,7 @@ def profile():
 
     # Get facilities for dropdown
     from models.facility import Facility
-    facilities = Facility.get_all()
+    facilities = Facility.get_all(organization_id=user.organization_id)
 
     return render_template('profile.html', user=user, facilities=facilities)
 

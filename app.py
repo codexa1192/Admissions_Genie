@@ -118,7 +118,8 @@ def dashboard():
     from models.user import User
 
     user = User.get_by_id(session['user_id'])
-    recent_admissions = Admission.get_recent(limit=10)
+    # Get recent admissions for the user's organization (multi-tenant)
+    recent_admissions = Admission.get_recent(organization_id=user.organization_id, limit=10)
 
     return render_template('dashboard.html', user=user, recent_admissions=recent_admissions)
 
