@@ -1,11 +1,15 @@
 """
 Admission model for managing admission assessments and decisions.
+PHI-FREE MODE: Uses auto-generated case numbers instead of patient identifiers.
 """
 
 import json
+import os
+import secrets
 from typing import Optional, List, Dict
 from datetime import datetime
 from config.database import db
+from utils.encryption import encrypt_value, decrypt_value
 
 
 class Admission:
@@ -18,19 +22,20 @@ class Admission:
 
     RECOMMENDATIONS = [ACCEPT, DEFER, DECLINE]
 
-    def __init__(self, id: Optional[int] = None, facility_id: Optional[int] = None,
-                 payer_id: Optional[int] = None, patient_initials: Optional[str] = None,
-                 uploaded_files: Optional[Dict] = None, extracted_data: Optional[Dict] = None,
-                 pdpm_groups: Optional[Dict] = None, projected_revenue: Optional[float] = None,
-                 projected_cost: Optional[float] = None, projected_los: Optional[int] = None,
-                 margin_score: Optional[int] = None, recommendation: Optional[str] = None,
-                 explanation: Optional[Dict] = None, actual_decision: Optional[str] = None,
-                 decided_by: Optional[int] = None, decided_at: Optional[datetime] = None,
-                 created_at: Optional[datetime] = None):
+    def __init__(self, id: Optional[int] = None, organization_id: Optional[int] = None,
+                 facility_id: Optional[int] = None, payer_id: Optional[int] = None,
+                 case_number: Optional[str] = None, uploaded_files: Optional[Dict] = None,
+                 extracted_data: Optional[Dict] = None, pdpm_groups: Optional[Dict] = None,
+                 projected_revenue: Optional[float] = None, projected_cost: Optional[float] = None,
+                 projected_los: Optional[int] = None, margin_score: Optional[int] = None,
+                 recommendation: Optional[str] = None, explanation: Optional[Dict] = None,
+                 actual_decision: Optional[str] = None, decided_by: Optional[int] = None,
+                 decided_at: Optional[datetime] = None, created_at: Optional[datetime] = None):
         self.id = id
+        self.organization_id = organization_id  # MULTI-TENANT
         self.facility_id = facility_id
         self.payer_id = payer_id
-        self.patient_initials = patient_initials
+        self.case_number = case_number
         self.uploaded_files = uploaded_files or {}
         self.extracted_data = extracted_data or {}
         self.pdpm_groups = pdpm_groups or {}
@@ -46,22 +51,37 @@ class Admission:
         self.created_at = created_at or datetime.now()
 
     @classmethod
-    def create(cls, facility_id: int, payer_id: int, patient_initials: Optional[str] = None,
-               uploaded_files: Optional[Dict] = None, extracted_data: Optional[Dict] = None,
-               pdpm_groups: Optional[Dict] = None, projected_revenue: Optional[float] = None,
-               projected_cost: Optional[float] = None, projected_los: Optional[int] = None,
-               margin_score: Optional[int] = None, recommendation: Optional[str] = None,
-               explanation: Optional[Dict] = None) -> 'Admission':
+    def _generate_case_number(cls) -> str:
         """
-        Create a new admission assessment.
+        Generate a unique case number for PHI-free admission tracking.
+        Format: CASE-YYYYMMDD-RANDOM4
+        Example: CASE-20251110-A7F3
+
+        PHI-FREE MODE: No patient identifiers - only auto-generated tracking codes.
+        """
+        timestamp = datetime.now().strftime('%Y%m%d')
+        # Generate 4-character random suffix (16^4 = 65,536 combinations per day)
+        random_suffix = secrets.token_hex(2).upper()  # 2 bytes = 4 hex chars
+        return f"CASE-{timestamp}-{random_suffix}"
+
+    @classmethod
+    def create(cls, organization_id: int, facility_id: int, payer_id: int,
+               case_number: Optional[str] = None, uploaded_files: Optional[Dict] = None,
+               extracted_data: Optional[Dict] = None, pdpm_groups: Optional[Dict] = None,
+               projected_revenue: Optional[float] = None, projected_cost: Optional[float] = None,
+               projected_los: Optional[int] = None, margin_score: Optional[int] = None,
+               recommendation: Optional[str] = None, explanation: Optional[Dict] = None) -> 'Admission':
+        """
+        Create a new admission assessment in PHI-FREE + MULTI-TENANT mode.
 
         Args:
+            organization_id: Organization ID (REQUIRED for multi-tenancy)
             facility_id: ID of the facility
             payer_id: ID of the payer
-            patient_initials: Patient initials (PHI protection)
-            uploaded_files: Dict of uploaded file paths
-            extracted_data: Dict of extracted clinical data
-            pdpm_groups: Dict of PDPM classification results
+            case_number: Auto-generated case tracking number (NO PHI)
+            uploaded_files: Dict of uploaded file paths (DELETED after processing)
+            extracted_data: DEPRECATED - PHI not stored in database
+            pdpm_groups: Dict of PDPM classification results (DE-IDENTIFIED)
             projected_revenue: Projected revenue amount
             projected_cost: Projected cost amount
             projected_los: Projected length of stay
@@ -71,36 +91,49 @@ class Admission:
 
         Returns:
             Admission instance with assigned ID
+
+        PHI-FREE MODE:
+        - case_number is auto-generated (no patient identifiers)
+        - uploaded_files are deleted immediately after processing
+        - extracted_data is NOT stored (only PDPM groups)
         """
+        # Auto-generate case number if not provided
+        if not case_number:
+            case_number = cls._generate_case_number()
+
         uploaded_files_json = json.dumps(uploaded_files or {})
-        extracted_data_json = json.dumps(extracted_data or {})
+        # PHI-FREE: Do not store extracted_data (clinical notes, medications, etc.)
+        extracted_data_json = json.dumps({})  # Always empty in PHI-free mode
         pdpm_groups_json = json.dumps(pdpm_groups or {})
         explanation_json = json.dumps(explanation or {})
 
+        # PHI-FREE MODE: No encryption needed (no PHI stored)
+        # Files are encrypted during upload but deleted after processing
         query = """
             INSERT INTO admissions (
-                facility_id, payer_id, patient_initials, uploaded_files, extracted_data,
-                pdpm_groups, projected_revenue, projected_cost, projected_los,
+                organization_id, facility_id, payer_id, case_number, uploaded_files,
+                extracted_data, pdpm_groups, projected_revenue, projected_cost, projected_los,
                 margin_score, recommendation, explanation
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         admission_id = db.execute_query(
             query,
-            (facility_id, payer_id, patient_initials, uploaded_files_json, extracted_data_json,
-             pdpm_groups_json, projected_revenue, projected_cost, projected_los,
-             margin_score, recommendation, explanation_json),
+            (organization_id, facility_id, payer_id, case_number, uploaded_files_json,
+             extracted_data_json, pdpm_groups_json, projected_revenue, projected_cost,
+             projected_los, margin_score, recommendation, explanation_json),
             fetch='none'
         )
 
         return cls(
             id=admission_id,
+            organization_id=organization_id,  # MULTI-TENANT
             facility_id=facility_id,
             payer_id=payer_id,
-            patient_initials=patient_initials,
+            case_number=case_number,
             uploaded_files=uploaded_files,
-            extracted_data=extracted_data,
+            extracted_data=extracted_data,  # Keep in memory for this session only
             pdpm_groups=pdpm_groups,
             projected_revenue=projected_revenue,
             projected_cost=projected_cost,
@@ -121,37 +154,57 @@ class Admission:
         return None
 
     @classmethod
-    def get_all_for_facility(cls, facility_id: int, limit: int = 100) -> List['Admission']:
-        """Get all admissions for a facility."""
+    def get_all_for_facility(cls, organization_id: int, facility_id: int,
+                             limit: int = 100) -> List['Admission']:
+        """Get all admissions for a facility (MULTI-TENANT)."""
         query = """
             SELECT * FROM admissions
-            WHERE facility_id = ?
+            WHERE organization_id = ? AND facility_id = ?
             ORDER BY created_at DESC
             LIMIT ?
         """
-        results = db.execute_query(query, (facility_id, limit))
+        results = db.execute_query(query, (organization_id, facility_id, limit))
         return [cls._from_db_row(row) for row in results]
 
     @classmethod
-    def get_recent(cls, limit: int = 20) -> List['Admission']:
-        """Get recent admissions across all facilities."""
-        query = "SELECT * FROM admissions ORDER BY created_at DESC LIMIT ?"
-        results = db.execute_query(query, (limit,))
+    def get_recent(cls, organization_id: int, limit: int = 20) -> List['Admission']:
+        """Get recent admissions for an organization (MULTI-TENANT)."""
+        query = """
+            SELECT * FROM admissions
+            WHERE organization_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """
+        results = db.execute_query(query, (organization_id, limit))
         return [cls._from_db_row(row) for row in results]
 
     @classmethod
     def _from_db_row(cls, row) -> 'Admission':
-        """Create Admission instance from database row."""
-        uploaded_files = json.loads(row['uploaded_files']) if row['uploaded_files'] else {}
-        extracted_data = json.loads(row['extracted_data']) if row['extracted_data'] else {}
+        """
+        Create Admission instance from database row.
+        PHI-FREE MODE: No decryption needed (no PHI stored).
+        """
+        # PHI-FREE MODE: Direct access (no decryption needed)
+        case_number = row['case_number']
+        uploaded_files_json = row['uploaded_files'] or '{}'
+        extracted_data_json = row['extracted_data'] or '{}'  # Will be empty in PHI-free mode
+
+        # Parse JSON fields
+        uploaded_files = json.loads(uploaded_files_json) if uploaded_files_json else {}
+        extracted_data = json.loads(extracted_data_json) if extracted_data_json else {}
         pdpm_groups = json.loads(row['pdpm_groups']) if row['pdpm_groups'] else {}
         explanation = json.loads(row['explanation']) if row['explanation'] else {}
 
+        # Parse datetime strings from SQLite
+        created_at = datetime.fromisoformat(row['created_at']) if row['created_at'] else None
+        decided_at = datetime.fromisoformat(row['decided_at']) if row['decided_at'] else None
+
         return cls(
             id=row['id'],
+            organization_id=row['organization_id'],  # MULTI-TENANT
             facility_id=row['facility_id'],
             payer_id=row['payer_id'],
-            patient_initials=row['patient_initials'],
+            case_number=case_number,
             uploaded_files=uploaded_files,
             extracted_data=extracted_data,
             pdpm_groups=pdpm_groups,
@@ -163,8 +216,8 @@ class Admission:
             explanation=explanation,
             actual_decision=row['actual_decision'],
             decided_by=row['decided_by'],
-            decided_at=row['decided_at'],
-            created_at=row['created_at']
+            decided_at=decided_at,
+            created_at=created_at
         )
 
     def record_decision(self, decision: str, decided_by: int):
@@ -225,14 +278,15 @@ class Admission:
         )
 
     def to_dict(self) -> Dict:
-        """Convert admission to dictionary."""
+        """Convert admission to dictionary (PHI-FREE + MULTI-TENANT)."""
         return {
             'id': self.id,
+            'organization_id': self.organization_id,  # MULTI-TENANT
             'facility_id': self.facility_id,
             'payer_id': self.payer_id,
-            'patient_initials': self.patient_initials,
+            'case_number': self.case_number,
             'uploaded_files': self.uploaded_files,
-            'extracted_data': self.extracted_data,
+            'extracted_data': self.extracted_data,  # Will be empty from database
             'pdpm_groups': self.pdpm_groups,
             'projected_revenue': self.projected_revenue,
             'projected_cost': self.projected_cost,
@@ -247,4 +301,4 @@ class Admission:
         }
 
     def __repr__(self):
-        return f"<Admission {self.id}: {self.patient_initials or 'Unknown'}, Score {self.margin_score}, {self.recommendation}>"
+        return f"<Admission {self.id}: {self.case_number or 'Unknown'}, Score {self.margin_score}, {self.recommendation}>"

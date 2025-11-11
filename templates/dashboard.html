@@ -56,7 +56,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Patient</th>
+                                <th>Case Number</th>
                                 <th>Date</th>
                                 <th>Score</th>
                                 <th>Recommendation</th>
@@ -68,7 +68,7 @@
                         <tbody>
                             {% for admission in recent_admissions[:10] %}
                             <tr>
-                                <td>{{ admission.patient_initials or 'N/A' }}</td>
+                                <td><code>{{ admission.case_number or 'N/A' }}</code></td>
                                 <td>{{ admission.created_at.strftime('%Y-%m-%d') if admission.created_at else 'N/A' }}</td>
                                 <td>
                                     <span class="badge bg-{% if admission.margin_score >= 70 %}success{% elif admission.margin_score >= 40 %}warning{% else %}danger{% endif %}">

@@ -1,12 +1,16 @@
 """
 Authentication routes for user login, logout, and registration.
+Includes HIPAA-compliant account lockout protection.
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from functools import wraps
+from datetime import datetime
 
 from models.user import User
 from utils.audit_logger import log_authentication, log_audit_event
+from utils.password_validator import validate_password_strength
+from utils.input_sanitizer import sanitize_email, sanitize_string
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -41,7 +45,11 @@ def admin_required(f):
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """User login page and handler."""
+    """
+    User login page and handler with account lockout protection.
+
+    HIPAA Compliance: §164.308(a)(5)(ii)(D) - Access Control Protection
+    """
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
@@ -53,8 +61,36 @@ def login():
         # Get user by email
         user = User.get_by_email(email)
 
-        if user and user.is_active and user.verify_password(password):
-            # Successful login
+        if not user:
+            # HIPAA audit log: failed login attempt (user not found)
+            log_authentication(None, 'login_failed', details={'email': email, 'reason': 'user_not_found'})
+            flash('Invalid email or password.', 'danger')
+            return render_template('login.html')
+
+        # Check if account is locked
+        if user.is_locked():
+            minutes_left = int((user.locked_until - datetime.now()).total_seconds() / 60) + 1
+            log_authentication(user.id, 'login_blocked', details={'reason': 'account_locked'})
+            flash(f'Account is locked due to multiple failed login attempts. Please try again in {minutes_left} minutes.', 'danger')
+            return render_template('login.html')
+
+        # Check if account is active
+        if not user.is_active:
+            log_authentication(user.id, 'login_blocked', details={'reason': 'account_inactive'})
+            flash('This account has been deactivated. Please contact an administrator.', 'danger')
+            return render_template('login.html')
+
+        # Verify password
+        if user.verify_password(password):
+            # Successful login - reset failed attempts
+            user.reset_failed_logins()
+
+            # SECURITY: Regenerate session ID to prevent session fixation attacks
+            # This is critical for HIPAA compliance (§164.312(a)(1) - Access Control)
+            session.clear()  # Clear any pre-existing session data
+            session.permanent = True  # Make session permanent (with timeout)
+
+            # Set session with new session ID
             session['user_id'] = user.id
             session['user_email'] = user.email
             session['user_role'] = user.role
@@ -69,21 +105,37 @@ def login():
             flash(f'Welcome back, {user.full_name or user.email}!', 'success')
             return redirect(url_for('dashboard'))
         else:
+            # Failed login - record attempt
+            user.record_failed_login()
+
             # HIPAA audit log: failed login attempt
-            log_authentication(None, 'login_failed', details={'email': email})
-            flash('Invalid email or password.', 'danger')
+            log_authentication(user.id, 'login_failed', details={
+                'email': email,
+                'reason': 'invalid_password',
+                'failed_attempts': user.failed_login_attempts
+            })
+
+            if user.is_locked():
+                flash('Too many failed login attempts. Your account has been locked for 30 minutes.', 'danger')
+            else:
+                remaining_attempts = 5 - user.failed_login_attempts
+                if remaining_attempts <= 2:
+                    flash(f'Invalid email or password. {remaining_attempts} attempts remaining before lockout.', 'danger')
+                else:
+                    flash('Invalid email or password.', 'danger')
 
     return render_template('login.html')
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration page and handler."""
+    """User registration page and handler with input sanitization."""
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
+        # SECURITY: Sanitize all user inputs to prevent XSS attacks
+        email = sanitize_email(request.form.get('email', ''))
+        password = request.form.get('password', '')  # Don't sanitize passwords - they're hashed
         confirm_password = request.form.get('confirm_password', '')
-        full_name = request.form.get('full_name', '').strip()
+        full_name = sanitize_string(request.form.get('full_name', ''))
         facility_id = request.form.get('facility_id')
 
         # Validation
@@ -95,8 +147,11 @@ def register():
             flash('Passwords do not match.', 'danger')
             return render_template('register.html')
 
-        if len(password) < 8:
-            flash('Password must be at least 8 characters long.', 'danger')
+        # HIPAA Compliance: Enforce strong password requirements
+        is_valid, password_errors = validate_password_strength(password)
+        if not is_valid:
+            for error in password_errors:
+                flash(error, 'danger')
             return render_template('register.html')
 
         # Check if user already exists
@@ -144,11 +199,12 @@ def logout():
 @auth_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    """User profile page."""
+    """User profile page with input sanitization."""
     user = User.get_by_id(session['user_id'])
 
     if request.method == 'POST':
-        full_name = request.form.get('full_name', '').strip()
+        # SECURITY: Sanitize user inputs
+        full_name = sanitize_string(request.form.get('full_name', ''))
         facility_id = request.form.get('facility_id')
 
         try:
@@ -194,8 +250,11 @@ def change_password():
             flash('New passwords do not match.', 'danger')
             return render_template('change_password.html')
 
-        if len(new_password) < 8:
-            flash('Password must be at least 8 characters long.', 'danger')
+        # HIPAA Compliance: Enforce strong password requirements
+        is_valid, password_errors = validate_password_strength(new_password)
+        if not is_valid:
+            for error in password_errors:
+                flash(error, 'danger')
             return render_template('change_password.html')
 
         # Update password

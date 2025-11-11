@@ -1,8 +1,10 @@
 # Admissions Genie - SNF Admission Decision Support Tool
 
-**Status:** ✅ **v1.0.0 - Demo Ready** | [Quick Demo Start](#quick-demo-start) | [Full Documentation](#installation)
+**Status:** ✅ **v1.0.0 - PHI-FREE MODE** | [Quick Demo Start](#quick-demo-start) | [PHI-FREE Documentation](PHI_FREE_MODE.md)
 
 A HIPAA-compliant web application that helps Skilled Nursing Facility (SNF) admissions staff make data-driven decisions by analyzing discharge packets, calculating projected margins based on facility-specific reimbursement rates, and providing transparent recommendations.
+
+**PHI-FREE MODE:** No patient identifiers stored. Auto-generated case numbers. Uploaded files deleted immediately after processing. [Learn more →](PHI_FREE_MODE.md)
 
 **Current Version:** Demo-ready MVP with synthetic data. Includes 3 pre-loaded sample admissions and realistic discharge documents for live demonstration.
 
@@ -121,14 +123,34 @@ Open http://localhost:8080 and login with:
    - Default admin login: admin@admissionsgenie.com / admin123
    - Regular user: user@admissionsgenie.com / user123
 
+## PHI-FREE Mode
+
+**New in v1.0:** Admissions Genie operates in PHI-FREE mode to minimize HIPAA compliance burden.
+
+### What This Means
+
+- ✅ **No patient identifiers stored** - Auto-generated case numbers only (e.g., CASE-20251110-A7F3)
+- ✅ **Files deleted immediately** - Uploaded documents have 5-10 second lifetime
+- ✅ **De-identified data only** - Only PDPM groups stored, not clinical details
+- ⚠️ **Azure BAA still required** - Files are temporarily processed during extraction
+
+### Benefits
+
+- **Simpler compliance** - No database encryption, no key management
+- **Lower risk** - Zero PHI in database means minimal breach exposure
+- **Same functionality** - Margin calculations remain identical
+- **Full audit trail** - Case numbers tracked in all logs
+
+📖 **Full Documentation:** [PHI_FREE_MODE.md](PHI_FREE_MODE.md)
+
 ## Usage
 
 ### For Admissions Staff
 
 1. **Upload Documents**: Navigate to the admission form and upload discharge documents
-2. **Fill in Details**: Select facility, payer type, and provide basic information
+2. **Fill in Details**: Select facility, payer type, and provide basic information (no patient identifiers needed)
 3. **Review Results**: Get instant margin score and recommendation with detailed breakdown
-4. **Sensitivity Analysis**: Use sliders to adjust assumptions (LOS, census priority, etc.)
+4. **Track by Case Number**: Each admission gets auto-generated case number (e.g., CASE-20251110-A7F3)
 5. **Make Decision**: Accept, defer, or decline with full audit trail
 
 ### For Administrators

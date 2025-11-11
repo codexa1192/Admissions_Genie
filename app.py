@@ -48,6 +48,9 @@ limiter = Limiter(
     storage_uri=app.config['RATELIMIT_STORAGE_URL']
 )
 
+# Make limiter accessible for route decorators
+app.extensions['limiter'] = limiter
+
 # Initialize session timeout middleware (HIPAA requirement: 15-minute idle timeout)
 init_session_timeout(app)
 
@@ -180,6 +183,84 @@ with app.app_context():
 
 
 if __name__ == '__main__':
+    # CRITICAL SECURITY CHECK: Enforce encryption in production
+    if Config.FLASK_ENV == 'production':
+        if not os.getenv('ENCRYPTION_KEY'):
+            print("\n" + "="*70)
+            print("❌ FATAL ERROR: ENCRYPTION_KEY not set in production!")
+            print("="*70)
+            print("\n🔒 HIPAA Compliance Requirement:")
+            print("Production deployment REQUIRES encryption for PHI protection.")
+            print("\n📝 To generate an encryption key:")
+            print('  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"')
+            print("\n⚙️  Then set the environment variable:")
+            print("  export ENCRYPTION_KEY='<generated-key>'")
+            print("  # Or add to .env file or hosting platform environment variables")
+            print("\n⚠️  Security Warning:")
+            print("  - Store the key securely (AWS Secrets Manager, Azure Key Vault, etc.)")
+            print("  - Never commit the key to version control")
+            print("  - Back up the key in multiple secure locations")
+            print("  - If the key is lost, encrypted data CANNOT be recovered")
+            print("="*70 + "\n")
+            sys.exit(1)  # PREVENT STARTUP WITHOUT ENCRYPTION
+
+        # Check for default admin credentials
+        try:
+            from models.user import User
+            admin = User.get_by_email('admin@admissionsgenie.com')
+            if admin and admin.verify_password('admin123'):
+                print("\n" + "="*70)
+                print("⚠️  WARNING: DEFAULT ADMIN CREDENTIALS DETECTED!")
+                print("="*70)
+                print("\n🔐 Security Risk:")
+                print("The default admin password 'admin123' is still in use.")
+                print("This is a CRITICAL security vulnerability in production.")
+                print("\n📝 Required Action:")
+                print("1. Login as admin@admissionsgenie.com")
+                print("2. Navigate to Settings → Change Password")
+                print("3. Set a strong password (12+ chars, mixed case, numbers, symbols)")
+                print("\n⏱  You have 24 hours to change this password.")
+                print("After 24 hours, the admin account will be locked for security.")
+                print("="*70 + "\n")
+                app.logger.critical("DEFAULT ADMIN CREDENTIALS DETECTED IN PRODUCTION - SECURITY RISK!")
+        except Exception as e:
+            app.logger.warning(f"Could not check admin credentials: {e}")
+
+        # Check virus scanner availability (CRITICAL for production)
+        try:
+            from utils.virus_scanner import get_virus_scanner
+            scanner = get_virus_scanner()
+            if not scanner.is_available():
+                print("\n" + "="*70)
+                print("❌ FATAL ERROR: Virus scanner not available in production!")
+                print("="*70)
+                print("\n🦠 HIPAA Compliance Requirement:")
+                print("Production deployment REQUIRES malware protection (§164.308(a)(5)(ii)(B)).")
+                print("\n📝 To install ClamAV:")
+                print("  # macOS")
+                print("  brew install clamav")
+                print("  brew services start clamav")
+                print("\n  # Ubuntu/Debian")
+                print("  sudo apt-get install clamav clamav-daemon")
+                print("  sudo systemctl start clamav-daemon")
+                print("\n  # Install Python package")
+                print("  pip install python-clamd")
+                print("\n⚠️  Security Warning:")
+                print("  Files CANNOT be uploaded safely without virus scanning.")
+                print("  This is a CRITICAL security requirement for handling PHI.")
+                print("="*70 + "\n")
+                sys.exit(1)  # PREVENT STARTUP WITHOUT VIRUS SCANNING
+            else:
+                print(f"✅ Virus scanner available: {scanner.get_version()}")
+        except Exception as e:
+            print("\n" + "="*70)
+            print("❌ FATAL ERROR: Cannot initialize virus scanner!")
+            print("="*70)
+            print(f"\nError: {e}")
+            print("\nVirus scanning is REQUIRED for HIPAA compliance.")
+            print("="*70 + "\n")
+            sys.exit(1)
+
     # Check for Azure OpenAI configuration (optional for demo mode)
     azure_configured = all([
         os.getenv('AZURE_OPENAI_API_KEY'),
@@ -202,12 +283,29 @@ if __name__ == '__main__':
 
     # Run the application
     port = int(os.getenv('PORT', 5000))
-    print("\n" + "="*70)
-    print(f"🚀 Starting Admissions Genie (DEMO VERSION)")
-    print("="*70)
-    print(f"📍 Access at: http://localhost:{port}")
-    print(f"📧 Admin login: admin@admissionsgenie.com / admin123")
-    print(f"📧 User login: user@admissionsgenie.com / user123")
-    print("="*70 + "\n")
+
+    # Show appropriate startup message based on mode
+    if Config.FLASK_ENV == 'production':
+        print("\n" + "="*70)
+        print(f"🚀 Starting Admissions Genie (PRODUCTION MODE)")
+        print("="*70)
+        print(f"📍 Access at: https://your-domain.com")
+        print(f"🔒 Encryption: ENABLED")
+        print(f"🔒 HIPAA Mode: ACTIVE")
+        print("="*70 + "\n")
+    else:
+        # Check virus scanner status in development
+        from utils.virus_scanner import get_virus_scanner
+        scanner = get_virus_scanner()
+        scanner_status = "✅ ENABLED" if scanner.is_available() else "⚠️  DISABLED (install ClamAV for production)"
+
+        print("\n" + "="*70)
+        print(f"🚀 Starting Admissions Genie (DEMO VERSION)")
+        print("="*70)
+        print(f"📍 Access at: http://localhost:{port}")
+        print(f"📧 Admin login: admin@admissionsgenie.com / admin123")
+        print(f"📧 User login: user@admissionsgenie.com / user123")
+        print(f"🦠 Virus Scanning: {scanner_status}")
+        print("="*70 + "\n")
 
     app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])

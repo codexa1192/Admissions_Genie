@@ -1,12 +1,19 @@
 """
 File storage service supporting local filesystem, AWS S3, and Azure Blob Storage.
 Automatically uses cloud storage in production when configured.
+Includes HIPAA-compliant encryption for local file storage.
 """
 
 import os
+import logging
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from config.settings import Config
+from utils.encryption import get_encryption_manager
+from utils.virus_scanner import get_virus_scanner
+from utils.audit_logger import log_audit_event
+
+logger = logging.getLogger(__name__)
 
 # Conditionally import cloud storage libraries
 try:
@@ -131,10 +138,84 @@ class FileStorage:
             raise Exception(f"Failed to upload to Azure Blob Storage: {str(e)}")
 
     def _save_to_local(self, file, filename: str) -> str:
-        """Save file to local filesystem."""
+        """
+        Save file to local filesystem with virus scanning and encryption.
+
+        HIPAA Compliance:
+        - §164.308(a)(5)(ii)(B) - Malware Protection (virus scanning)
+        - §164.312(a)(2)(iv) - Encryption at rest
+        """
         filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
-        file.save(filepath)
-        return filepath
+
+        # Save to temporary file first (for scanning and encryption)
+        temp_path = filepath + '.tmp'
+        file.save(temp_path)
+
+        try:
+            # HIPAA REQUIRED: Virus scan before processing
+            virus_scanner = get_virus_scanner()
+            is_clean, threat_name = virus_scanner.scan_file(temp_path)
+
+            if not is_clean:
+                # SECURITY: File is infected - delete and log
+                os.remove(temp_path)
+
+                # Log security incident
+                log_audit_event(
+                    action='virus_detected',
+                    resource_type='file',
+                    resource_id=filename,
+                    changes={
+                        'filename': filename,
+                        'threat': threat_name,
+                        'action': 'rejected'
+                    }
+                )
+
+                logger.error(f"🦠 VIRUS DETECTED: {filename} - {threat_name}")
+                raise Exception(f"File rejected: Virus detected ({threat_name})")
+
+            # File is clean - log successful scan
+            logger.info(f"✅ Virus scan passed: {filename}")
+            log_audit_event(
+                action='file_uploaded',
+                resource_type='file',
+                resource_id=filename,
+                changes={
+                    'filename': filename,
+                    'scanned': True,
+                    'encrypted': os.getenv('ENCRYPTION_KEY') is not None
+                }
+            )
+
+            # Check if encryption is enabled
+            encryption_enabled = os.getenv('ENCRYPTION_KEY') is not None
+
+            if encryption_enabled:
+                # Encrypt the file
+                try:
+                    encryption_manager = get_encryption_manager()
+                    encrypted_path = encryption_manager.encrypt_file(temp_path, filepath + '.encrypted')
+
+                    # Remove temporary unencrypted file
+                    os.remove(temp_path)
+
+                    return encrypted_path
+                except Exception as e:
+                    # Clean up temp file on error
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+                    raise Exception(f"Failed to encrypt file: {str(e)}")
+            else:
+                # Development mode: no encryption, but still scanned
+                os.rename(temp_path, filepath)
+                return filepath
+
+        except Exception as e:
+            # Clean up temp file on any error
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise
 
     def get_file(self, file_key: str) -> bytes:
         """
@@ -183,12 +264,45 @@ class FileStorage:
             raise Exception(f"Failed to retrieve from Azure Blob Storage: {str(e)}")
 
     def _get_from_local(self, filepath: str) -> bytes:
-        """Retrieve file from local filesystem."""
+        """
+        Retrieve file from local filesystem with decryption.
+
+        HIPAA Compliance: Decrypts encrypted files when ENCRYPTION_KEY is set.
+        """
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"File not found: {filepath}")
 
-        with open(filepath, 'rb') as f:
-            return f.read()
+        # Check if encryption is enabled and file is encrypted
+        encryption_enabled = os.getenv('ENCRYPTION_KEY') is not None
+        is_encrypted = filepath.endswith('.encrypted')
+
+        if encryption_enabled and is_encrypted:
+            # Decrypt the file
+            try:
+                encryption_manager = get_encryption_manager()
+
+                # Decrypt to temporary file
+                temp_decrypted = filepath.replace('.encrypted', '.decrypted.tmp')
+                encryption_manager.decrypt_file(filepath, temp_decrypted)
+
+                # Read decrypted content
+                with open(temp_decrypted, 'rb') as f:
+                    content = f.read()
+
+                # Remove temporary decrypted file
+                os.remove(temp_decrypted)
+
+                return content
+            except Exception as e:
+                # Clean up temp file on error
+                temp_decrypted = filepath.replace('.encrypted', '.decrypted.tmp')
+                if os.path.exists(temp_decrypted):
+                    os.remove(temp_decrypted)
+                raise Exception(f"Failed to decrypt file: {str(e)}")
+        else:
+            # Read unencrypted file (development mode or legacy data)
+            with open(filepath, 'rb') as f:
+                return f.read()
 
     def delete_file(self, file_key: str) -> bool:
         """

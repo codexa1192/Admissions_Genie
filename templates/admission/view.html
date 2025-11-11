@@ -7,7 +7,7 @@
     <div class="col-12">
         <h2><i class="fas fa-chart-line"></i> Admission Analysis #{{ admission.id }}</h2>
         <p class="text-muted">
-            Patient: <strong>{{ admission.patient_initials or 'N/A' }}</strong> |
+            Case: <strong><code>{{ admission.case_number or 'N/A' }}</code></strong> |
             Facility: <strong>{{ facility.name }}</strong> |
             Payer: <strong>{{ payer.get_display_name() }}</strong> |
             Created: {{ admission.created_at.strftime('%Y-%m-%d %H:%M') if admission.created_at else 'N/A' }}

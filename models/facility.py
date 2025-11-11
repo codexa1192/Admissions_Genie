@@ -8,23 +8,26 @@ from config.database import db
 
 
 class Facility:
-    """Represents a Skilled Nursing Facility (SNF)."""
+    """Represents a Skilled Nursing Facility (SNF) - MULTI-TENANT."""
 
-    def __init__(self, id: Optional[int] = None, name: str = '', wage_index: Optional[float] = None,
+    def __init__(self, id: Optional[int] = None, organization_id: Optional[int] = None,
+                 name: str = '', wage_index: Optional[float] = None,
                  vbp_multiplier: Optional[float] = None, capabilities: Optional[Dict] = None):
         self.id = id
+        self.organization_id = organization_id  # MULTI-TENANT
         self.name = name
         self.wage_index = wage_index or 1.0
         self.vbp_multiplier = vbp_multiplier or 1.0
         self.capabilities = capabilities or {}
 
     @classmethod
-    def create(cls, name: str, wage_index: float = 1.0, vbp_multiplier: float = 1.0,
-               capabilities: Optional[Dict] = None) -> 'Facility':
+    def create(cls, organization_id: int, name: str, wage_index: float = 1.0,
+               vbp_multiplier: float = 1.0, capabilities: Optional[Dict] = None) -> 'Facility':
         """
-        Create a new facility.
+        Create a new facility (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for multi-tenancy)
             name: Facility name
             wage_index: Medicare wage index for the facility location
             vbp_multiplier: SNF VBP performance multiplier (default 1.0)
@@ -36,18 +39,19 @@ class Facility:
         capabilities_json = json.dumps(capabilities or {})
 
         query = """
-            INSERT INTO facilities (name, wage_index, vbp_multiplier, capabilities)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO facilities (organization_id, name, wage_index, vbp_multiplier, capabilities)
+            VALUES (?, ?, ?, ?, ?)
         """
 
         facility_id = db.execute_query(
             query,
-            (name, wage_index, vbp_multiplier, capabilities_json),
+            (organization_id, name, wage_index, vbp_multiplier, capabilities_json),
             fetch='none'
         )
 
-        return cls(id=facility_id, name=name, wage_index=wage_index,
-                   vbp_multiplier=vbp_multiplier, capabilities=capabilities)
+        return cls(id=facility_id, organization_id=organization_id, name=name,
+                   wage_index=wage_index, vbp_multiplier=vbp_multiplier,
+                   capabilities=capabilities)
 
     @classmethod
     def get_by_id(cls, facility_id: int) -> Optional['Facility']:
@@ -60,10 +64,10 @@ class Facility:
         return None
 
     @classmethod
-    def get_all(cls) -> List['Facility']:
-        """Get all facilities."""
-        query = "SELECT * FROM facilities ORDER BY name"
-        results = db.execute_query(query)
+    def get_all(cls, organization_id: int) -> List['Facility']:
+        """Get all facilities for an organization (MULTI-TENANT)."""
+        query = "SELECT * FROM facilities WHERE organization_id = ? ORDER BY name"
+        results = db.execute_query(query, (organization_id,))
         return [cls._from_db_row(row) for row in results]
 
     @classmethod
@@ -72,6 +76,7 @@ class Facility:
         capabilities = json.loads(row['capabilities']) if row['capabilities'] else {}
         return cls(
             id=row['id'],
+            organization_id=row['organization_id'],  # MULTI-TENANT
             name=row['name'],
             wage_index=row['wage_index'],
             vbp_multiplier=row['vbp_multiplier'],
@@ -118,6 +123,7 @@ class Facility:
         """Convert facility to dictionary."""
         return {
             'id': self.id,
+            'organization_id': self.organization_id,  # MULTI-TENANT
             'name': self.name,
             'wage_index': self.wage_index,
             'vbp_multiplier': self.vbp_multiplier,

@@ -1,5 +1,6 @@
 """
 Admin routes for managing facilities, payers, rates, and cost models.
+Includes comprehensive HIPAA audit logging for all administrative actions.
 """
 
 import csv
@@ -14,6 +15,7 @@ from models.payer import Payer
 from models.rates import Rate
 from models.cost_model import CostModel
 from models.user import User
+from utils.audit_logger import log_audit_event
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -67,6 +69,15 @@ def new_facility():
 
         try:
             facility = Facility.create(name, wage_index, vbp_multiplier, capabilities)
+
+            # HIPAA Audit Log: Facility creation
+            log_audit_event(
+                action='facility_created',
+                resource_type='facility',
+                resource_id=facility.id,
+                changes={'new': facility.to_dict()}
+            )
+
             flash(f'Facility "{name}" created successfully!', 'success')
             return redirect(url_for('admin.facilities'))
         except Exception as e:
@@ -100,7 +111,19 @@ def edit_facility(facility_id):
         }
 
         try:
+            # Capture old values before update
+            old_data = facility.to_dict()
+
             facility.update(name, wage_index, vbp_multiplier, capabilities)
+
+            # HIPAA Audit Log: Facility update
+            log_audit_event(
+                action='facility_updated',
+                resource_type='facility',
+                resource_id=facility.id,
+                changes={'old': old_data, 'new': facility.to_dict()}
+            )
+
             flash(f'Facility "{name}" updated successfully!', 'success')
             return redirect(url_for('admin.facilities'))
         except Exception as e:
@@ -130,6 +153,15 @@ def new_payer():
 
         try:
             payer = Payer.create(payer_type, plan_name, network_status)
+
+            # HIPAA Audit Log: Payer creation
+            log_audit_event(
+                action='payer_created',
+                resource_type='payer',
+                resource_id=payer.id,
+                changes={'new': payer.to_dict()}
+            )
+
             flash(f'Payer "{payer.get_display_name()}" created successfully!', 'success')
             return redirect(url_for('admin.payers'))
         except Exception as e:
@@ -154,7 +186,19 @@ def edit_payer(payer_id):
         network_status = request.form.get('network_status', 'in_network')
 
         try:
+            # Capture old values before update
+            old_data = payer.to_dict()
+
             payer.update(payer_type, plan_name, network_status)
+
+            # HIPAA Audit Log: Payer update
+            log_audit_event(
+                action='payer_updated',
+                resource_type='payer',
+                resource_id=payer.id,
+                changes={'old': old_data, 'new': payer.to_dict()}
+            )
+
             flash(f'Payer "{payer.get_display_name()}" updated successfully!', 'success')
             return redirect(url_for('admin.payers'))
         except Exception as e:
@@ -262,6 +306,14 @@ def upload_rates():
                 effective_date = datetime.strptime(request.form.get('effective_date'), '%Y-%m-%d').date()
                 Rate.create(facility_id, payer_id, rate_type, rate_data, effective_date)
 
+            # HIPAA Audit Log: Rate upload
+            log_audit_event(
+                action='rates_uploaded',
+                resource_type='rate',
+                resource_id=facility_id,  # Use facility as context
+                changes={'facility_id': facility_id, 'payer_id': payer_id, 'rate_type': rate_type}
+            )
+
             flash('Rates uploaded successfully!', 'success')
             return redirect(url_for('admin.rates', facility_id=facility_id))
 
@@ -316,6 +368,15 @@ def new_cost_model():
                 facility_id, acuity_band, nursing_hours, hourly_rate,
                 supply_cost, pharmacy_addon, transport_cost
             )
+
+            # HIPAA Audit Log: Cost model creation
+            log_audit_event(
+                action='cost_model_created',
+                resource_type='cost_model',
+                resource_id=cost_model.id,
+                changes={'new': cost_model.to_dict()}
+            )
+
             flash(f'Cost model for {acuity_band} acuity created successfully!', 'success')
             return redirect(url_for('admin.cost_models', facility_id=facility_id))
         except Exception as e:
@@ -344,7 +405,19 @@ def edit_cost_model(cost_model_id):
         transport_cost = float(request.form.get('transport_cost', 0))
 
         try:
+            # Capture old values before update
+            old_data = cost_model.to_dict()
+
             cost_model.update(nursing_hours, hourly_rate, supply_cost, pharmacy_addon, transport_cost)
+
+            # HIPAA Audit Log: Cost model update
+            log_audit_event(
+                action='cost_model_updated',
+                resource_type='cost_model',
+                resource_id=cost_model.id,
+                changes={'old': old_data, 'new': cost_model.to_dict()}
+            )
+
             flash('Cost model updated successfully!', 'success')
             return redirect(url_for('admin.cost_models', facility_id=cost_model.facility_id))
         except Exception as e:
@@ -376,12 +449,24 @@ def toggle_user_active(user_id):
         return redirect(url_for('admin.users'))
 
     try:
+        # Capture action for audit log
+        action = 'user_deactivated' if user.is_active else 'user_activated'
+        old_status = user.is_active
+
         if user.is_active:
             user.deactivate()
             flash(f'User {user.email} deactivated.', 'success')
         else:
             user.activate()
             flash(f'User {user.email} activated.', 'success')
+
+        # HIPAA Audit Log: User status change
+        log_audit_event(
+            action=action,
+            resource_type='user',
+            resource_id=user.id,
+            changes={'old_status': old_status, 'new_status': user.is_active, 'email': user.email}
+        )
     except Exception as e:
         flash(f'Error toggling user status: {str(e)}', 'danger')
 

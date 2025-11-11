@@ -78,12 +78,11 @@
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="patient_initials" class="form-label fw-bold">Patient Initials</label>
-                        <input type="text" class="form-control" id="patient_initials"
-                               name="patient_initials" maxlength="3" placeholder="e.g., JD"
-                               pattern="[A-Za-z]{1,3}">
-                        <small class="form-text text-muted">Optional. Max 3 letters (PHI protection).</small>
+                    <!-- PHI-FREE MODE: Case numbers are auto-generated (no patient identifiers needed) -->
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>PHI-Free Mode:</strong> This system does not store any patient identifiers.
+                        A unique case number will be auto-generated for tracking purposes.
                     </div>
 
                     <div class="mb-3">

@@ -17,11 +17,14 @@ class User:
 
     ROLES = [USER, ADMIN]
 
-    def __init__(self, id: Optional[int] = None, email: str = '', password_hash: str = '',
+    def __init__(self, id: Optional[int] = None, organization_id: Optional[int] = None,
+                 email: str = '', password_hash: str = '',
                  full_name: Optional[str] = None, facility_id: Optional[int] = None,
                  role: str = USER, is_active: bool = True, created_at: Optional[datetime] = None,
-                 last_login: Optional[datetime] = None):
+                 last_login: Optional[datetime] = None, failed_login_attempts: int = 0,
+                 locked_until: Optional[datetime] = None, last_failed_login: Optional[datetime] = None):
         self.id = id
+        self.organization_id = organization_id  # MULTI-TENANT
         self.email = email
         self.password_hash = password_hash
         self.full_name = full_name
@@ -30,14 +33,18 @@ class User:
         self.is_active = is_active
         self.created_at = created_at
         self.last_login = last_login
+        self.failed_login_attempts = failed_login_attempts
+        self.locked_until = locked_until
+        self.last_failed_login = last_failed_login
 
     @classmethod
-    def create(cls, email: str, password: str, full_name: Optional[str] = None,
+    def create(cls, organization_id: int, email: str, password: str, full_name: Optional[str] = None,
                facility_id: Optional[int] = None, role: str = USER) -> 'User':
         """
-        Create a new user.
+        Create a new user (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for multi-tenancy)
             email: User email (unique)
             password: Plain text password (will be hashed)
             full_name: User's full name
@@ -54,18 +61,19 @@ class User:
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         query = """
-            INSERT INTO users (email, password_hash, full_name, facility_id, role)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO users (organization_id, email, password_hash, full_name, facility_id, role)
+            VALUES (?, ?, ?, ?, ?, ?)
         """
 
         user_id = db.execute_query(
             query,
-            (email, password_hash, full_name, facility_id, role),
+            (organization_id, email, password_hash, full_name, facility_id, role),
             fetch='none'
         )
 
         return cls(
             id=user_id,
+            organization_id=organization_id,
             email=email,
             password_hash=password_hash,
             full_name=full_name,
@@ -94,37 +102,49 @@ class User:
         return None
 
     @classmethod
-    def get_all(cls, facility_id: Optional[int] = None, role: Optional[str] = None) -> List['User']:
+    def get_all(cls, organization_id: int, facility_id: Optional[int] = None,
+                role: Optional[str] = None) -> List['User']:
         """
-        Get all users, optionally filtered by facility or role.
+        Get all users for an organization (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for tenant isolation)
             facility_id: Optional facility ID to filter by
             role: Optional role to filter by
 
         Returns:
-            List of User instances
+            List of User instances scoped to the organization
         """
         if facility_id and role:
-            query = "SELECT * FROM users WHERE facility_id = ? AND role = ? ORDER BY email"
-            results = db.execute_query(query, (facility_id, role))
+            query = "SELECT * FROM users WHERE organization_id = ? AND facility_id = ? AND role = ? ORDER BY email"
+            results = db.execute_query(query, (organization_id, facility_id, role))
         elif facility_id:
-            query = "SELECT * FROM users WHERE facility_id = ? ORDER BY email"
-            results = db.execute_query(query, (facility_id,))
+            query = "SELECT * FROM users WHERE organization_id = ? AND facility_id = ? ORDER BY email"
+            results = db.execute_query(query, (organization_id, facility_id))
         elif role:
-            query = "SELECT * FROM users WHERE role = ? ORDER BY email"
-            results = db.execute_query(query, (role,))
+            query = "SELECT * FROM users WHERE organization_id = ? AND role = ? ORDER BY email"
+            results = db.execute_query(query, (organization_id, role))
         else:
-            query = "SELECT * FROM users ORDER BY email"
-            results = db.execute_query(query)
+            query = "SELECT * FROM users WHERE organization_id = ? ORDER BY email"
+            results = db.execute_query(query, (organization_id,))
 
         return [cls._from_db_row(row) for row in results]
 
     @classmethod
     def _from_db_row(cls, row) -> 'User':
         """Create User instance from database row."""
+        # Handle both dict and sqlite3.Row objects
+        locked_until_str = row['locked_until'] if 'locked_until' in row.keys() else None
+        last_failed_login_str = row['last_failed_login'] if 'last_failed_login' in row.keys() else None
+        failed_attempts = row['failed_login_attempts'] if 'failed_login_attempts' in row.keys() else 0
+
+        # Parse datetime fields
+        locked_until = datetime.fromisoformat(locked_until_str) if locked_until_str else None
+        last_failed_login = datetime.fromisoformat(last_failed_login_str) if last_failed_login_str else None
+
         return cls(
             id=row['id'],
+            organization_id=row['organization_id'],  # MULTI-TENANT
             email=row['email'],
             password_hash=row['password_hash'],
             full_name=row['full_name'],
@@ -132,7 +152,10 @@ class User:
             role=row['role'],
             is_active=bool(row['is_active']),
             created_at=row['created_at'],
-            last_login=row['last_login']
+            last_login=row['last_login'],
+            failed_login_attempts=failed_attempts,
+            locked_until=locked_until,
+            last_failed_login=last_failed_login
         )
 
     def verify_password(self, password: str) -> bool:
@@ -182,6 +205,78 @@ class User:
         query = "UPDATE users SET is_active = 1 WHERE id = ?"
         db.execute_query(query, (self.id,), fetch='none')
 
+    def is_locked(self) -> bool:
+        """
+        Check if account is currently locked.
+
+        HIPAA Compliance: §164.308(a)(5)(ii)(D) - Access Control Protection
+        """
+        if not self.locked_until:
+            return False
+
+        # Check if lock has expired
+        if datetime.now() > self.locked_until:
+            # Auto-unlock if lock period has passed
+            self.unlock()
+            return False
+
+        return True
+
+    def record_failed_login(self):
+        """
+        Record a failed login attempt and lock account if threshold exceeded.
+
+        HIPAA Compliance: §164.308(a)(5)(ii)(D) - Access Control Protection
+        Locks account for 30 minutes after 5 failed attempts within 15 minutes.
+        """
+        from datetime import timedelta
+
+        now = datetime.now()
+        self.failed_login_attempts += 1
+        self.last_failed_login = now
+
+        # Lock account after 5 failed attempts
+        if self.failed_login_attempts >= 5:
+            self.locked_until = now + timedelta(minutes=30)
+            query = """
+                UPDATE users
+                SET failed_login_attempts = ?, last_failed_login = ?, locked_until = ?
+                WHERE id = ?
+            """
+            db.execute_query(query, (self.failed_login_attempts, self.last_failed_login,
+                                     self.locked_until, self.id), fetch='none')
+        else:
+            query = """
+                UPDATE users
+                SET failed_login_attempts = ?, last_failed_login = ?
+                WHERE id = ?
+            """
+            db.execute_query(query, (self.failed_login_attempts, self.last_failed_login,
+                                     self.id), fetch='none')
+
+    def reset_failed_logins(self):
+        """Reset failed login attempts counter after successful login."""
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        query = """
+            UPDATE users
+            SET failed_login_attempts = 0, last_failed_login = NULL
+            WHERE id = ?
+        """
+        db.execute_query(query, (self.id,), fetch='none')
+
+    def unlock(self):
+        """Unlock account (admin action or auto-unlock after timeout)."""
+        self.failed_login_attempts = 0
+        self.locked_until = None
+        self.last_failed_login = None
+        query = """
+            UPDATE users
+            SET failed_login_attempts = 0, locked_until = NULL, last_failed_login = NULL
+            WHERE id = ?
+        """
+        db.execute_query(query, (self.id,), fetch='none')
+
     def is_admin(self) -> bool:
         """Check if user is an admin."""
         return self.role == self.ADMIN
@@ -198,6 +293,7 @@ class User:
         """
         data = {
             'id': self.id,
+            'organization_id': self.organization_id,  # MULTI-TENANT
             'email': self.email,
             'full_name': self.full_name,
             'facility_id': self.facility_id,

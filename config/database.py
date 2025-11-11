@@ -142,41 +142,61 @@ def init_db(database_url: Optional[str] = None):
 
     # SQL schema (compatible with both SQLite and PostgreSQL)
     schema = """
-    -- Facilities table
+    -- Organizations table (MULTI-TENANT: Each SNF customer is an organization)
+    CREATE TABLE IF NOT EXISTS organizations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        subdomain TEXT UNIQUE NOT NULL,  -- For subdomain routing (acme.admissionsgenie.com)
+        subscription_tier TEXT NOT NULL DEFAULT 'trial',  -- trial, starter, professional, enterprise
+        settings TEXT,  -- JSON string: feature flags, usage limits, branding
+        stripe_customer_id TEXT UNIQUE,  -- Stripe customer ID for billing
+        is_active INTEGER DEFAULT 1,
+        trial_ends_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Facilities table (MULTI-TENANT: Add organization_id)
     CREATE TABLE IF NOT EXISTS facilities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         name TEXT NOT NULL,
         wage_index REAL,
         vbp_multiplier REAL,
         capabilities TEXT,  -- JSON string
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (organization_id) REFERENCES organizations (id)
     );
 
-    -- Payers table
+    -- Payers table (MULTI-TENANT: Organization-specific payers)
     CREATE TABLE IF NOT EXISTS payers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         type TEXT NOT NULL,  -- 'Medicare FFS', 'MA', 'Medicaid FFS', 'Family Care', 'Commercial'
         plan_name TEXT,
         network_status TEXT,  -- 'in_network', 'out_of_network', 'single_case'
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (organization_id) REFERENCES organizations (id)
     );
 
-    -- Rates table (unified for all payer types)
+    -- Rates table (MULTI-TENANT: Organization-specific rates)
     CREATE TABLE IF NOT EXISTS rates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         facility_id INTEGER,
         payer_id INTEGER,
         payer_type TEXT NOT NULL,  -- 'medicare_ffs', 'ma_commercial', 'medicaid_wi', 'family_care_wi'
         rate_data TEXT NOT NULL,  -- JSON string with rate structure
         effective_date DATE NOT NULL,
         end_date DATE,
+        FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (facility_id) REFERENCES facilities (id),
         FOREIGN KEY (payer_id) REFERENCES payers (id)
     );
 
-    -- Cost models table
+    -- Cost models table (MULTI-TENANT: Organization-specific cost models)
     CREATE TABLE IF NOT EXISTS cost_models (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         facility_id INTEGER,
         acuity_band TEXT NOT NULL,  -- 'low', 'medium', 'high', 'complex'
         nursing_hours REAL NOT NULL,
@@ -185,30 +205,34 @@ def init_db(database_url: Optional[str] = None):
         pharmacy_addon REAL,
         transport_cost REAL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (facility_id) REFERENCES facilities (id)
     );
 
-    -- Business weights table
+    -- Business weights table (MULTI-TENANT: Organization-specific weights)
     CREATE TABLE IF NOT EXISTS business_weights (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         facility_id INTEGER,
         version INTEGER NOT NULL,
         weights TEXT NOT NULL,  -- JSON string
         effective_date DATE NOT NULL,
         created_by INTEGER,
         UNIQUE (facility_id, version),
+        FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (facility_id) REFERENCES facilities (id)
     );
 
-    -- Admissions table
+    -- Admissions table (PHI-FREE MODE + MULTI-TENANT)
     CREATE TABLE IF NOT EXISTS admissions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         facility_id INTEGER NOT NULL,
         payer_id INTEGER NOT NULL,
-        patient_initials TEXT,  -- PHI protection: only initials
-        uploaded_files TEXT,  -- JSON string: file paths
-        extracted_data TEXT,  -- JSON string: ICD-10 codes, meds, notes, etc.
-        pdpm_groups TEXT,  -- JSON string: PT, OT, SLP, Nursing groups
+        case_number TEXT UNIQUE,  -- Auto-generated case ID (NO PHI)
+        uploaded_files TEXT,  -- JSON string: file paths (DELETED after processing)
+        extracted_data TEXT,  -- JSON string: DEPRECATED - PHI not stored
+        pdpm_groups TEXT,  -- JSON string: PT, OT, SLP, Nursing groups (DE-IDENTIFIED)
         projected_revenue REAL,
         projected_cost REAL,
         projected_los INTEGER,
@@ -223,9 +247,10 @@ def init_db(database_url: Optional[str] = None):
         FOREIGN KEY (payer_id) REFERENCES payers (id)
     );
 
-    -- Users table
+    -- Users table (MULTI-TENANT: Users belong to organizations)
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         full_name TEXT,
@@ -234,12 +259,14 @@ def init_db(database_url: Optional[str] = None):
         is_active INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP,
+        FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (facility_id) REFERENCES facilities (id)
     );
 
-    -- Audit logs table (comprehensive system audit trail)
+    -- Audit logs table (MULTI-TENANT: Organization-scoped audit trail)
     CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,  -- MULTI-TENANT: Tenant isolation
         user_id INTEGER,
         action TEXT NOT NULL,  -- Action type (admission_created, user_login, etc.)
         resource_type TEXT,  -- Type of resource (admission, facility, rate, etc.)
@@ -248,19 +275,33 @@ def init_db(database_url: Optional[str] = None):
         ip_address TEXT,
         user_agent TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (user_id) REFERENCES users (id)
     );
 
-    -- Create indexes for common queries
+    -- Create indexes for common queries (MULTI-TENANT: Organization-scoped)
+    -- Organization indexes (CRITICAL for multi-tenant performance)
+    CREATE INDEX IF NOT EXISTS idx_facilities_org ON facilities(organization_id);
+    CREATE INDEX IF NOT EXISTS idx_payers_org ON payers(organization_id);
+    CREATE INDEX IF NOT EXISTS idx_rates_org ON rates(organization_id);
+    CREATE INDEX IF NOT EXISTS idx_cost_models_org ON cost_models(organization_id);
+    CREATE INDEX IF NOT EXISTS idx_business_weights_org ON business_weights(organization_id);
+    CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_org ON audit_logs(organization_id);
+
+    -- Admissions indexes (most queried table)
+    CREATE INDEX IF NOT EXISTS idx_admissions_org_created ON admissions(organization_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_admissions_facility ON admissions(facility_id);
     CREATE INDEX IF NOT EXISTS idx_admissions_payer ON admissions(payer_id);
     CREATE INDEX IF NOT EXISTS idx_admissions_created ON admissions(created_at);
+
+    -- Other common query indexes
     CREATE INDEX IF NOT EXISTS idx_rates_facility_payer ON rates(facility_id, payer_id);
     CREATE INDEX IF NOT EXISTS idx_rates_effective_date ON rates(effective_date);
     CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id);
     CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
     CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_logs(resource_type, resource_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
     """
 
     # PostgreSQL uses SERIAL instead of AUTOINCREMENT

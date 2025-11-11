@@ -7,7 +7,7 @@ from config.database import db
 
 
 class Payer:
-    """Represents an insurance payer (Medicare, Medicaid, MA, etc.)."""
+    """Represents an insurance payer (Medicare, Medicaid, MA, etc.) - MULTI-TENANT."""
 
     # Payer type constants
     MEDICARE_FFS = 'Medicare FFS'
@@ -18,20 +18,23 @@ class Payer:
 
     PAYER_TYPES = [MEDICARE_FFS, MEDICARE_ADVANTAGE, MEDICAID_FFS, FAMILY_CARE, COMMERCIAL]
 
-    def __init__(self, id: Optional[int] = None, type: str = '', plan_name: Optional[str] = None,
+    def __init__(self, id: Optional[int] = None, organization_id: Optional[int] = None,
+                 type: str = '', plan_name: Optional[str] = None,
                  network_status: str = 'in_network'):
         self.id = id
+        self.organization_id = organization_id  # MULTI-TENANT
         self.type = type
         self.plan_name = plan_name
         self.network_status = network_status
 
     @classmethod
-    def create(cls, type: str, plan_name: Optional[str] = None,
+    def create(cls, organization_id: int, type: str, plan_name: Optional[str] = None,
                network_status: str = 'in_network') -> 'Payer':
         """
-        Create a new payer.
+        Create a new payer (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for multi-tenancy)
             type: Payer type (use constants like Payer.MEDICARE_FFS)
             plan_name: Name of specific plan (for MA, Commercial)
             network_status: 'in_network', 'out_of_network', 'single_case'
@@ -43,17 +46,18 @@ class Payer:
             raise ValueError(f"Invalid payer type. Must be one of: {cls.PAYER_TYPES}")
 
         query = """
-            INSERT INTO payers (type, plan_name, network_status)
-            VALUES (?, ?, ?)
+            INSERT INTO payers (organization_id, type, plan_name, network_status)
+            VALUES (?, ?, ?, ?)
         """
 
         payer_id = db.execute_query(
             query,
-            (type, plan_name, network_status),
+            (organization_id, type, plan_name, network_status),
             fetch='none'
         )
 
-        return cls(id=payer_id, type=type, plan_name=plan_name, network_status=network_status)
+        return cls(id=payer_id, organization_id=organization_id, type=type,
+                   plan_name=plan_name, network_status=network_status)
 
     @classmethod
     def get_by_id(cls, payer_id: int) -> Optional['Payer']:
@@ -66,34 +70,36 @@ class Payer:
         return None
 
     @classmethod
-    def get_all(cls, type: Optional[str] = None) -> List['Payer']:
+    def get_all(cls, organization_id: int, type: Optional[str] = None) -> List['Payer']:
         """
-        Get all payers, optionally filtered by type.
+        Get all payers for an organization (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for tenant isolation)
             type: Optional payer type to filter by
 
         Returns:
-            List of Payer instances
+            List of Payer instances scoped to the organization
         """
         if type:
-            query = "SELECT * FROM payers WHERE type = ? ORDER BY plan_name"
-            results = db.execute_query(query, (type,))
+            query = "SELECT * FROM payers WHERE organization_id = ? AND type = ? ORDER BY plan_name"
+            results = db.execute_query(query, (organization_id, type))
         else:
-            query = "SELECT * FROM payers ORDER BY type, plan_name"
-            results = db.execute_query(query)
+            query = "SELECT * FROM payers WHERE organization_id = ? ORDER BY type, plan_name"
+            results = db.execute_query(query, (organization_id,))
 
         return [cls._from_db_row(row) for row in results]
 
     @classmethod
-    def get_by_type_and_plan(cls, type: str, plan_name: Optional[str] = None) -> Optional['Payer']:
-        """Get payer by type and optional plan name."""
+    def get_by_type_and_plan(cls, organization_id: int, type: str,
+                             plan_name: Optional[str] = None) -> Optional['Payer']:
+        """Get payer by type and optional plan name (MULTI-TENANT)."""
         if plan_name:
-            query = "SELECT * FROM payers WHERE type = ? AND plan_name = ?"
-            result = db.execute_query(query, (type, plan_name), fetch='one')
+            query = "SELECT * FROM payers WHERE organization_id = ? AND type = ? AND plan_name = ?"
+            result = db.execute_query(query, (organization_id, type, plan_name), fetch='one')
         else:
-            query = "SELECT * FROM payers WHERE type = ? AND plan_name IS NULL"
-            result = db.execute_query(query, (type,), fetch='one')
+            query = "SELECT * FROM payers WHERE organization_id = ? AND type = ? AND plan_name IS NULL"
+            result = db.execute_query(query, (organization_id, type), fetch='one')
 
         if result:
             return cls._from_db_row(result)
@@ -104,6 +110,7 @@ class Payer:
         """Create Payer instance from database row."""
         return cls(
             id=row['id'],
+            organization_id=row['organization_id'],  # MULTI-TENANT
             type=row['type'],
             plan_name=row['plan_name'],
             network_status=row['network_status']
@@ -142,6 +149,7 @@ class Payer:
         """Convert payer to dictionary."""
         return {
             'id': self.id,
+            'organization_id': self.organization_id,  # MULTI-TENANT
             'type': self.type,
             'plan_name': self.plan_name,
             'network_status': self.network_status
