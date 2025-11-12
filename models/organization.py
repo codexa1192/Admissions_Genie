@@ -78,7 +78,7 @@ class Organization:
 
         org_id = db.execute_query(
             query,
-            (name, subdomain, subscription_tier, settings_json, True, trial_ends_at),
+            (name, subdomain, subscription_tier, settings_json, 1, trial_ends_at),  # Use 1 instead of True for PostgreSQL
             fetch='none'
         )
 
@@ -174,7 +174,7 @@ class Organization:
         db.execute_query(
             query,
             (self.name, self.subscription_tier, settings_json,
-             self.stripe_customer_id, self.is_active, self.id),
+             self.stripe_customer_id, 1 if self.is_active else 0, self.id),  # Convert bool to int for PostgreSQL
             fetch='none'
         )
 
