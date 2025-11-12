@@ -195,9 +195,20 @@ class Admission:
         pdpm_groups = json.loads(row['pdpm_groups']) if row['pdpm_groups'] else {}
         explanation = json.loads(row['explanation']) if row['explanation'] else {}
 
-        # Parse datetime strings from SQLite
-        created_at = datetime.fromisoformat(row['created_at']) if row['created_at'] else None
-        decided_at = datetime.fromisoformat(row['decided_at']) if row['decided_at'] else None
+        # Parse datetime fields (PostgreSQL returns datetime objects, SQLite returns strings)
+        created_at = None
+        if row['created_at']:
+            if isinstance(row['created_at'], str):
+                created_at = datetime.fromisoformat(row['created_at'])
+            else:
+                created_at = row['created_at']
+
+        decided_at = None
+        if row['decided_at']:
+            if isinstance(row['decided_at'], str):
+                decided_at = datetime.fromisoformat(row['decided_at'])
+            else:
+                decided_at = row['decided_at']
 
         return cls(
             id=row['id'],
