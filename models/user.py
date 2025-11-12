@@ -134,13 +134,24 @@ class User:
     def _from_db_row(cls, row) -> 'User':
         """Create User instance from database row."""
         # Handle both dict and sqlite3.Row objects
-        locked_until_str = row['locked_until'] if 'locked_until' in row.keys() else None
-        last_failed_login_str = row['last_failed_login'] if 'last_failed_login' in row.keys() else None
+        locked_until_raw = row['locked_until'] if 'locked_until' in row.keys() else None
+        last_failed_login_raw = row['last_failed_login'] if 'last_failed_login' in row.keys() else None
         failed_attempts = row['failed_login_attempts'] if 'failed_login_attempts' in row.keys() else 0
 
-        # Parse datetime fields
-        locked_until = datetime.fromisoformat(locked_until_str) if locked_until_str else None
-        last_failed_login = datetime.fromisoformat(last_failed_login_str) if last_failed_login_str else None
+        # Parse datetime fields (PostgreSQL returns datetime objects, SQLite returns strings)
+        locked_until = None
+        if locked_until_raw:
+            if isinstance(locked_until_raw, str):
+                locked_until = datetime.fromisoformat(locked_until_raw)
+            else:
+                locked_until = locked_until_raw
+
+        last_failed_login = None
+        if last_failed_login_raw:
+            if isinstance(last_failed_login_raw, str):
+                last_failed_login = datetime.fromisoformat(last_failed_login_raw)
+            else:
+                last_failed_login = last_failed_login_raw
 
         return cls(
             id=row['id'],
