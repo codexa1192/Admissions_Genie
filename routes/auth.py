@@ -160,6 +160,7 @@ def register():
         try:
             facility_id_int = int(facility_id) if facility_id else None
             user = User.create(
+                organization_id=1,  # Default to first organization (demo)
                 email=email,
                 password=password,
                 full_name=full_name,

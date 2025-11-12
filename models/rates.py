@@ -19,11 +19,12 @@ class Rate:
 
     RATE_TYPES = [MEDICARE_FFS, MA_COMMERCIAL, MEDICAID_WI, FAMILY_CARE_WI]
 
-    def __init__(self, id: Optional[int] = None, facility_id: Optional[int] = None,
-                 payer_id: Optional[int] = None, payer_type: str = '',
-                 rate_data: Optional[Dict] = None, effective_date: Optional[date] = None,
-                 end_date: Optional[date] = None):
+    def __init__(self, id: Optional[int] = None, organization_id: Optional[int] = None,
+                 facility_id: Optional[int] = None, payer_id: Optional[int] = None,
+                 payer_type: str = '', rate_data: Optional[Dict] = None,
+                 effective_date: Optional[date] = None, end_date: Optional[date] = None):
         self.id = id
+        self.organization_id = organization_id  # MULTI-TENANT
         self.facility_id = facility_id
         self.payer_id = payer_id
         self.payer_type = payer_type
@@ -32,12 +33,13 @@ class Rate:
         self.end_date = end_date
 
     @classmethod
-    def create(cls, facility_id: int, payer_id: int, payer_type: str,
+    def create(cls, organization_id: int, facility_id: int, payer_id: int, payer_type: str,
                rate_data: Dict, effective_date: date, end_date: Optional[date] = None) -> 'Rate':
         """
-        Create a new rate record.
+        Create a new rate record (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for multi-tenancy)
             facility_id: ID of the facility
             payer_id: ID of the payer
             payer_type: Type of rate (use Rate constants)
@@ -54,18 +56,19 @@ class Rate:
         rate_data_json = json.dumps(rate_data)
 
         query = """
-            INSERT INTO rates (facility_id, payer_id, payer_type, rate_data, effective_date, end_date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO rates (organization_id, facility_id, payer_id, payer_type, rate_data, effective_date, end_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
 
         rate_id = db.execute_query(
             query,
-            (facility_id, payer_id, payer_type, rate_data_json, effective_date, end_date),
+            (organization_id, facility_id, payer_id, payer_type, rate_data_json, effective_date, end_date),
             fetch='none'
         )
 
         return cls(
             id=rate_id,
+            organization_id=organization_id,
             facility_id=facility_id,
             payer_id=payer_id,
             payer_type=payer_type,
@@ -155,6 +158,7 @@ class Rate:
         rate_data = json.loads(row['rate_data']) if row['rate_data'] else {}
         return cls(
             id=row['id'],
+            organization_id=row['organization_id'],  # MULTI-TENANT
             facility_id=row['facility_id'],
             payer_id=row['payer_id'],
             payer_type=row['payer_type'],

@@ -21,7 +21,7 @@ class Config:
     DEBUG = FLASK_ENV == 'development'
 
     # Database settings
-    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///admissions.db').strip()
+    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///data/admissions_genie.db').strip()
 
     # Azure OpenAI settings (HIPAA-compliant)
     AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')

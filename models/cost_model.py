@@ -17,10 +17,12 @@ class CostModel:
 
     ACUITY_BANDS = [LOW, MEDIUM, HIGH, COMPLEX]
 
-    def __init__(self, id: Optional[int] = None, facility_id: Optional[int] = None,
-                 acuity_band: str = '', nursing_hours: float = 0.0, hourly_rate: float = 0.0,
-                 supply_cost: float = 0.0, pharmacy_addon: float = 0.0, transport_cost: float = 0.0):
+    def __init__(self, id: Optional[int] = None, organization_id: Optional[int] = None,
+                 facility_id: Optional[int] = None, acuity_band: str = '', nursing_hours: float = 0.0,
+                 hourly_rate: float = 0.0, supply_cost: float = 0.0, pharmacy_addon: float = 0.0,
+                 transport_cost: float = 0.0):
         self.id = id
+        self.organization_id = organization_id  # MULTI-TENANT
         self.facility_id = facility_id
         self.acuity_band = acuity_band
         self.nursing_hours = nursing_hours
@@ -30,13 +32,14 @@ class CostModel:
         self.transport_cost = transport_cost
 
     @classmethod
-    def create(cls, facility_id: int, acuity_band: str, nursing_hours: float,
+    def create(cls, organization_id: int, facility_id: int, acuity_band: str, nursing_hours: float,
                hourly_rate: float, supply_cost: float = 0.0, pharmacy_addon: float = 0.0,
                transport_cost: float = 0.0) -> 'CostModel':
         """
-        Create a new cost model.
+        Create a new cost model (MULTI-TENANT).
 
         Args:
+            organization_id: Organization ID (REQUIRED for multi-tenancy)
             facility_id: ID of the facility
             acuity_band: Acuity level (use CostModel constants)
             nursing_hours: Average nursing hours per day
@@ -52,20 +55,21 @@ class CostModel:
             raise ValueError(f"Invalid acuity band. Must be one of: {cls.ACUITY_BANDS}")
 
         query = """
-            INSERT INTO cost_models (facility_id, acuity_band, nursing_hours, hourly_rate,
+            INSERT INTO cost_models (organization_id, facility_id, acuity_band, nursing_hours, hourly_rate,
                                     supply_cost, pharmacy_addon, transport_cost)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         cost_model_id = db.execute_query(
             query,
-            (facility_id, acuity_band, nursing_hours, hourly_rate, supply_cost,
+            (organization_id, facility_id, acuity_band, nursing_hours, hourly_rate, supply_cost,
              pharmacy_addon, transport_cost),
             fetch='none'
         )
 
         return cls(
             id=cost_model_id,
+            organization_id=organization_id,
             facility_id=facility_id,
             acuity_band=acuity_band,
             nursing_hours=nursing_hours,
@@ -122,6 +126,7 @@ class CostModel:
         """Create CostModel instance from database row."""
         return cls(
             id=row['id'],
+            organization_id=row['organization_id'],  # MULTI-TENANT
             facility_id=row['facility_id'],
             acuity_band=row['acuity_band'],
             nursing_hours=row['nursing_hours'],
@@ -195,6 +200,7 @@ class CostModel:
         """Convert cost model to dictionary."""
         return {
             'id': self.id,
+            'organization_id': self.organization_id,  # MULTI-TENANT
             'facility_id': self.facility_id,
             'acuity_band': self.acuity_band,
             'nursing_hours': self.nursing_hours,

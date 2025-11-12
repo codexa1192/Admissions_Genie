@@ -263,6 +263,9 @@ def init_db(database_url: Optional[str] = None):
         is_active INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP,
+        failed_login_attempts INTEGER DEFAULT 0,
+        locked_until TIMESTAMP,
+        last_failed_login TIMESTAMP,
         FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (facility_id) REFERENCES facilities (id)
     );

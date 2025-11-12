@@ -96,6 +96,7 @@ def seed_database():
         'fiscal_year': 2025
     }
     rate1 = Rate.create(
+        org.id,
         facility1.id,
         payer_medicare.id,
         Rate.MEDICARE_FFS,
@@ -114,6 +115,7 @@ def seed_database():
         }
     }
     rate2 = Rate.create(
+        org.id,
         facility1.id,
         payer_ma.id,
         Rate.MA_COMMERCIAL,
@@ -129,6 +131,7 @@ def seed_database():
         'component_room': 45.00
     }
     rate3 = Rate.create(
+        org.id,
         facility1.id,
         payer_medicaid.id,
         Rate.MEDICAID_WI,
@@ -154,6 +157,7 @@ def seed_database():
         }
     }
     rate4 = Rate.create(
+        org.id,
         facility1.id,
         payer_fc.id,
         Rate.FAMILY_CARE_WI,
@@ -180,6 +184,7 @@ def seed_database():
         }
 
         cost_model = CostModel.create(
+            org.id,
             facility1.id,
             acuity,
             hours_map[acuity],
@@ -204,6 +209,7 @@ def seed_database():
         'fiscal_year': 2025
     }
     Rate.create(
+        org.id,
         facility2.id,
         payer_medicare.id,
         Rate.MEDICARE_FFS,
@@ -222,6 +228,7 @@ def seed_database():
         }
     }
     Rate.create(
+        org.id,
         facility2.id,
         payer_ma.id,
         Rate.MA_COMMERCIAL,
@@ -236,6 +243,7 @@ def seed_database():
         'high_acuity_addon': 45.00
     }
     Rate.create(
+        org.id,
         facility2.id,
         payer_medicaid.id,
         Rate.MEDICAID_WI,
@@ -261,6 +269,7 @@ def seed_database():
         }
     }
     Rate.create(
+        org.id,
         facility2.id,
         payer_fc.id,
         Rate.FAMILY_CARE_WI,
@@ -287,6 +296,7 @@ def seed_database():
         }
 
         CostModel.create(
+            org.id,
             facility2.id,
             acuity,
             hours_map[acuity],
