@@ -21,14 +21,18 @@ def seed_database():
     # Initialize database first
     init_db()
 
-    # Create organization first (MULTI-TENANT)
-    print("\n1. Creating organization...")
-    org = Organization.create(
-        name="Demo SNF",
-        subdomain="demo",
-        subscription_tier=Organization.TIER_TRIAL
-    )
-    print(f"  ✅ Created organization: {org.name} (ID: {org.id})")
+    # Get or create organization (MULTI-TENANT)
+    print("\n1. Getting or creating organization...")
+    org = Organization.get_by_subdomain("demo")
+    if not org:
+        org = Organization.create(
+            name="Demo SNF",
+            subdomain="demo",
+            subscription_tier=Organization.TIER_TRIAL
+        )
+        print(f"  ✅ Created organization: {org.name} (ID: {org.id})")
+    else:
+        print(f"  ℹ️  Organization already exists: {org.name} (ID: {org.id})")
 
     # Create sample facilities
     print("\n2. Creating facilities...")
