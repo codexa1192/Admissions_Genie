@@ -12,6 +12,7 @@ from routes.auth import login_required
 from models.admission import Admission
 from models.facility import Facility
 from models.payer import Payer
+from models.user import User
 from models.rates import Rate
 from models.cost_model import CostModel
 from services.document_parser import DocumentParser

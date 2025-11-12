@@ -63,20 +63,20 @@ def login():
 
         if not user:
             # HIPAA audit log: failed login attempt (user not found)
-            log_authentication(None, 'login_failed', details={'email': email, 'reason': 'user_not_found'})
+            log_authentication(None, False, reason='user_not_found')
             flash('Invalid email or password.', 'danger')
             return render_template('login.html')
 
         # Check if account is locked
         if user.is_locked():
             minutes_left = int((user.locked_until - datetime.now()).total_seconds() / 60) + 1
-            log_authentication(user.id, 'login_blocked', details={'reason': 'account_locked'})
+            log_authentication(user.id, False, reason='account_locked')
             flash(f'Account is locked due to multiple failed login attempts. Please try again in {minutes_left} minutes.', 'danger')
             return render_template('login.html')
 
         # Check if account is active
         if not user.is_active:
-            log_authentication(user.id, 'login_blocked', details={'reason': 'account_inactive'})
+            log_authentication(user.id, False, reason='account_inactive')
             flash('This account has been deactivated. Please contact an administrator.', 'danger')
             return render_template('login.html')
 
@@ -100,7 +100,7 @@ def login():
             user.update_last_login()
 
             # HIPAA audit log: successful login
-            log_authentication(user.id, 'login_success')
+            log_authentication(user.id, True)
 
             flash(f'Welcome back, {user.full_name or user.email}!', 'success')
             return redirect(url_for('dashboard'))
@@ -109,11 +109,7 @@ def login():
             user.record_failed_login()
 
             # HIPAA audit log: failed login attempt
-            log_authentication(user.id, 'login_failed', details={
-                'email': email,
-                'reason': 'invalid_password',
-                'failed_attempts': user.failed_login_attempts
-            })
+            log_authentication(user.id, False, reason='invalid_password')
 
             if user.is_locked():
                 flash('Too many failed login attempts. Your account has been locked for 30 minutes.', 'danger')
@@ -191,7 +187,7 @@ def logout():
     """User logout handler."""
     # HIPAA audit log: logout (before clearing session)
     if 'user_id' in session:
-        log_authentication(session['user_id'], 'logout')
+        log_authentication(session['user_id'], True, reason='logout')
 
     session.clear()
     flash('You have been logged out.', 'info')
