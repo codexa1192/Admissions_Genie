@@ -5,6 +5,7 @@ Run this after initializing the database.
 
 from datetime import date, datetime
 from config.database import init_db
+from models.organization import Organization
 from models.facility import Facility
 from models.payer import Payer
 from models.rates import Rate
@@ -20,9 +21,19 @@ def seed_database():
     # Initialize database first
     init_db()
 
+    # Create organization first (MULTI-TENANT)
+    print("\n1. Creating organization...")
+    org = Organization.create(
+        name="Demo SNF",
+        subdomain="demo",
+        subscription_tier=Organization.TIER_TRIAL
+    )
+    print(f"  ✅ Created organization: {org.name} (ID: {org.id})")
+
     # Create sample facilities
-    print("\n1. Creating facilities...")
+    print("\n2. Creating facilities...")
     facility1 = Facility.create(
+        organization_id=org.id,
         name="Sunshine SNF",
         wage_index=1.0234,
         vbp_multiplier=0.98,
@@ -38,6 +49,7 @@ def seed_database():
     print(f"  ✅ Created: {facility1.name}")
 
     facility2 = Facility.create(
+        organization_id=org.id,
         name="Green Valley Care Center",
         wage_index=0.9876,
         vbp_multiplier=1.01,
@@ -53,17 +65,17 @@ def seed_database():
     print(f"  ✅ Created: {facility2.name}")
 
     # Create sample payers
-    print("\n2. Creating payers...")
-    payer_medicare = Payer.create(Payer.MEDICARE_FFS)
+    print("\n3. Creating payers...")
+    payer_medicare = Payer.create(org.id, Payer.MEDICARE_FFS)
     print(f"  ✅ Created: {payer_medicare.get_display_name()}")
 
-    payer_ma = Payer.create(Payer.MEDICARE_ADVANTAGE, "Humana Gold Plus")
+    payer_ma = Payer.create(org.id, Payer.MEDICARE_ADVANTAGE, "Humana Gold Plus")
     print(f"  ✅ Created: {payer_ma.get_display_name()}")
 
-    payer_medicaid = Payer.create(Payer.MEDICAID_FFS)
+    payer_medicaid = Payer.create(org.id, Payer.MEDICAID_FFS)
     print(f"  ✅ Created: {payer_medicaid.get_display_name()}")
 
-    payer_fc = Payer.create(Payer.FAMILY_CARE, "iCare Family Care MCO")
+    payer_fc = Payer.create(org.id, Payer.FAMILY_CARE, "iCare Family Care MCO")
     print(f"  ✅ Created: {payer_fc.get_display_name()}")
 
     # Create sample rates
@@ -287,6 +299,7 @@ def seed_database():
     admin_user = User.get_by_email("admin@admissionsgenie.com")
     if not admin_user:
         admin_user = User.create(
+            organization_id=org.id,
             email="admin@admissionsgenie.com",
             password="admin123",
             full_name="Admin User",
@@ -300,6 +313,7 @@ def seed_database():
     regular_user = User.get_by_email("user@admissionsgenie.com")
     if not regular_user:
         regular_user = User.create(
+            organization_id=org.id,
             email="user@admissionsgenie.com",
             password="user123",
             full_name="Regular User",
@@ -310,14 +324,30 @@ def seed_database():
     else:
         print(f"  ℹ️  Regular user already exists: {regular_user.email}")
 
+    # Create additional user for jthayer@verisightanalytics.com
+    jt_user = User.get_by_email("jthayer@verisightanalytics.com")
+    if not jt_user:
+        jt_user = User.create(
+            organization_id=org.id,
+            email="jthayer@verisightanalytics.com",
+            password="admin123",  # Same as admin for now
+            full_name="Josh Thayer",
+            facility_id=facility1.id,
+            role=User.ADMIN
+        )
+        print(f"  ✅ Created user: {jt_user.email}")
+    else:
+        print(f"  ℹ️  User already exists: {jt_user.email}")
+
     # Create sample admissions for demo
     print("\n6. Creating sample admissions for demo...")
 
     # Sample 1: High-margin Medicare hip fracture case (Score: 87)
     admission1 = Admission.create(
+        organization_id=org.id,
         facility_id=facility1.id,
         payer_id=payer_medicare.id,
-        patient_initials='JD',
+        case_number='DEMO-001',
         extracted_data={
             'diagnoses': ['Z96.641', 'M96.661', 'E11.9'],
             'medications': ['Warfarin', 'Metformin', 'Acetaminophen'],
@@ -349,13 +379,14 @@ def seed_database():
             'conclusion': 'Excellent admission opportunity'
         }
     )
-    print(f"  ✅ Created high-margin admission: {admission1.patient_initials} (Score: {admission1.margin_score})")
+    print(f"  ✅ Created high-margin admission: {admission1.case_number} (Score: {admission1.margin_score})")
 
     # Sample 2: Medium-margin MA case (Score: 62)
     admission2 = Admission.create(
+        organization_id=org.id,
         facility_id=facility1.id,
         payer_id=payer_ma.id,
-        patient_initials='MS',
+        case_number='DEMO-002',
         extracted_data={
             'diagnoses': ['I50.9', 'J44.1', 'N18.3'],
             'medications': ['Furosemide', 'Albuterol', 'Lisinopril', 'Insulin'],
@@ -387,13 +418,14 @@ def seed_database():
             'conclusion': 'Moderate admission opportunity - acceptable with close monitoring'
         }
     )
-    print(f"  ✅ Created medium-margin admission: {admission2.patient_initials} (Score: {admission2.margin_score})")
+    print(f"  ✅ Created medium-margin admission: {admission2.case_number} (Score: {admission2.margin_score})")
 
     # Sample 3: Low-margin Medicaid long-stay case (Score: 38)
     admission3 = Admission.create(
+        organization_id=org.id,
         facility_id=facility1.id,
         payer_id=payer_medicaid.id,
-        patient_initials='RT',
+        case_number='DEMO-003',
         extracted_data={
             'diagnoses': ['G30.9', 'I10', 'M81.0', 'R26.81'],
             'medications': ['Donepezil', 'Amlodipine', 'Calcium/VitD', 'Lorazepam'],
@@ -429,7 +461,7 @@ def seed_database():
             'conclusion': 'High-risk admission. Consider only if strategic need to maintain Medicaid census for licensing.'
         }
     )
-    print(f"  ✅ Created low-margin admission: {admission3.patient_initials} (Score: {admission3.margin_score})")
+    print(f"  ✅ Created low-margin admission: {admission3.case_number} (Score: {admission3.margin_score})")
 
     print("\n✅ Database seeding complete!")
     print("\n📋 Login Credentials:")
@@ -437,14 +469,17 @@ def seed_database():
     print(f"Admin Login:")
     print(f"  Email: admin@admissionsgenie.com")
     print(f"  Password: admin123")
+    print(f"\nJosh Thayer Login:")
+    print(f"  Email: jthayer@verisightanalytics.com")
+    print(f"  Password: admin123")
     print(f"\nRegular User Login:")
     print(f"  Email: user@admissionsgenie.com")
     print(f"  Password: user123")
     print("=" * 50)
     print(f"\n📊 Sample Admissions Created:")
-    print(f"  1. {admission1.patient_initials} - Medicare Hip Fracture (Score: {admission1.margin_score}) - ✅ ACCEPT")
-    print(f"  2. {admission2.patient_initials} - MA Multi-Comorbid (Score: {admission2.margin_score}) - ⚠️  CONSIDER")
-    print(f"  3. {admission3.patient_initials} - Medicaid Dementia (Score: {admission3.margin_score}) - ❌ DECLINE")
+    print(f"  1. {admission1.case_number} - Medicare Hip Fracture (Score: {admission1.margin_score}) - ✅ ACCEPT")
+    print(f"  2. {admission2.case_number} - MA Multi-Comorbid (Score: {admission2.margin_score}) - ⚠️  CONSIDER")
+    print(f"  3. {admission3.case_number} - Medicaid Dementia (Score: {admission3.margin_score}) - ❌ DECLINE")
     print("=" * 50)
 
 
