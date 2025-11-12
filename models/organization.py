@@ -129,9 +129,20 @@ class Organization:
         """Create Organization instance from database row."""
         settings = json.loads(row['settings']) if row['settings'] else {}
 
-        # Parse datetime strings
-        created_at = datetime.fromisoformat(row['created_at']) if row['created_at'] else None
-        trial_ends_at = datetime.fromisoformat(row['trial_ends_at']) if row.get('trial_ends_at') else None
+        # Parse datetime fields (PostgreSQL returns datetime objects, SQLite returns strings)
+        created_at = None
+        if row['created_at']:
+            if isinstance(row['created_at'], str):
+                created_at = datetime.fromisoformat(row['created_at'])
+            else:
+                created_at = row['created_at']
+
+        trial_ends_at = None
+        if row.get('trial_ends_at'):
+            if isinstance(row['trial_ends_at'], str):
+                trial_ends_at = datetime.fromisoformat(row['trial_ends_at'])
+            else:
+                trial_ends_at = row['trial_ends_at']
 
         return cls(
             id=row['id'],
