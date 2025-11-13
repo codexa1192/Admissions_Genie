@@ -318,9 +318,10 @@ def seed_database():
             password="admin123",
             full_name="Admin User",
             facility_id=facility1.id,
-            role=User.ADMIN
+            role=User.ADMIN,
+            password_must_change=True  # Force password change on first login
         )
-        print(f"  ✅ Created admin user: {admin_user.email}")
+        print(f"  ✅ Created admin user: {admin_user.email} (password change required)")
     else:
         print(f"  ℹ️  Admin user already exists: {admin_user.email}")
 
@@ -344,12 +345,13 @@ def seed_database():
         jt_user = User.create(
             organization_id=org.id,
             email="jthayer@verisightanalytics.com",
-            password="admin123",  # Same as admin for now
+            password="admin123",  # Temporary password - will be forced to change
             full_name="Josh Thayer",
             facility_id=facility1.id,
-            role=User.ADMIN
+            role=User.ADMIN,
+            password_must_change=True  # Force password change on first login
         )
-        print(f"  ✅ Created user: {jt_user.email}")
+        print(f"  ✅ Created user: {jt_user.email} (password change required)")
     else:
         print(f"  ℹ️  User already exists: {jt_user.email}")
 
