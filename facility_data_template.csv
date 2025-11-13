@@ -1,0 +1,104 @@
+Section,Field,Value,Instructions,Example
+FACILITY_INFO,Facility Name,,"Official facility name",Sunshine Skilled Nursing Facility
+FACILITY_INFO,Street Address,,"Facility street address",123 Main Street
+FACILITY_INFO,City,,"City",Milwaukee
+FACILITY_INFO,State,,"2-letter state code",WI
+FACILITY_INFO,ZIP Code,,"5-digit ZIP",53202
+FACILITY_INFO,CMS Certification Number (CCN),,"6-digit CCN from Medicare",515678
+FACILITY_INFO,Phone Number,,"Main phone number",(414) 555-1234
+
+MEDICARE_DATA,Wage Index,,"Find at cms.gov → Search 'SNF wage index 2024' + your county. Urban: 1.0-1.3, Rural: 0.8-1.0",1.0234
+MEDICARE_DATA,VBP Multiplier,,"From Medicare remittance advice OR use 1.0 as default. Range: 0.98-1.02",1.0
+MEDICARE_DATA,County/CBSA,,"County or Core-Based Statistical Area name for wage index lookup",Milwaukee County
+
+CAPABILITIES,Dialysis,,"YES or NO - Can you provide dialysis?",YES
+CAPABILITIES,IV Antibiotics,,"YES or NO - Can you administer IV antibiotics?",YES
+CAPABILITIES,Wound VAC,,"YES or NO - Do you have wound VAC capability?",NO
+CAPABILITIES,Trach Care,,"YES or NO - Can you care for trach patients?",YES
+CAPABILITIES,Ventilator,,"YES or NO - Do you have ventilator capability?",NO
+CAPABILITIES,Bariatric,,"YES or NO - Can you care for 350+ lb patients?",YES
+
+PAYERS,Medicare FFS,ACCEPTED,"Write ACCEPTED or NOT ACCEPTED",ACCEPTED
+PAYERS,Humana Medicare Advantage,,"Write ACCEPTED or NOT ACCEPTED (leave blank if not applicable)",ACCEPTED
+PAYERS,UnitedHealthcare Medicare Advantage,,"Write ACCEPTED or NOT ACCEPTED",NOT ACCEPTED
+PAYERS,Anthem Medicare Advantage,,"Write ACCEPTED or NOT ACCEPTED",
+PAYERS,Wisconsin Medicaid FFS,,"Write ACCEPTED or NOT ACCEPTED",ACCEPTED
+PAYERS,iCare Family Care MCO,,"Write ACCEPTED or NOT ACCEPTED",ACCEPTED
+PAYERS,My Choice Family Care MCO,,"Write ACCEPTED or NOT ACCEPTED",ACCEPTED
+PAYERS,Lakeland Care MCO,,"Write ACCEPTED or NOT ACCEPTED",NOT ACCEPTED
+PAYERS,Care Wisconsin MCO,,"Write ACCEPTED or NOT ACCEPTED",NOT ACCEPTED
+PAYERS,Other Payer 1 (Name),,"Enter payer name if you have additional payers",
+PAYERS,Other Payer 2 (Name),,"Enter payer name",
+PAYERS,Other Payer 3 (Name),,"Enter payer name",
+
+MEDICARE_FFS_RATES,Use CMS Published Rates?,YES,"Write YES to use default CMS rates (recommended) or NO to enter custom rates",YES
+MEDICARE_FFS_RATES,PT Component Rate,,"Leave blank if using CMS rates. Otherwise enter custom $/day",
+MEDICARE_FFS_RATES,OT Component Rate,,"Leave blank if using CMS rates",
+MEDICARE_FFS_RATES,SLP Component Rate,,"Leave blank if using CMS rates",
+MEDICARE_FFS_RATES,Nursing Component Rate,,"Leave blank if using CMS rates",
+MEDICARE_FFS_RATES,NTA Component Rate,,"Leave blank if using CMS rates",
+MEDICARE_FFS_RATES,Non-Case-Mix Rate,,"Leave blank if using CMS rates",
+
+MA_RATES,Humana Per Diem Rate,,"Enter $/day if flat per diem contract (e.g. $450.00)",450.00
+MA_RATES,Humana % of Medicare,,"OR enter % of Medicare FFS (e.g. 95 for 95% of Medicare)",
+MA_RATES,UnitedHealthcare Per Diem Rate,,"Enter $/day or leave blank",
+MA_RATES,UnitedHealthcare % of Medicare,,"OR enter % of Medicare",
+MA_RATES,Other MA Plan 1 Per Diem,,"Enter $/day",
+MA_RATES,Other MA Plan 1 % of Medicare,,"OR enter %",
+
+MEDICAID_RATES,Wisconsin Medicaid Daily Rate,,"Enter your Medicaid per diem (check DHS rate sheet). Typical: $225-245/day",234.00
+MEDICAID_RATES,Medicaid Nursing Component,,"If component-based, enter nursing $/day (else leave blank)",185.00
+MEDICAID_RATES,Medicaid Therapy Component,,"If component-based, enter therapy $/day",95.00
+MEDICAID_RATES,Medicaid Room & Board,,"If component-based, enter R&B $/day",45.00
+
+FAMILY_CARE_RATES,iCare ES1 Rate,,"Enter $/day for Elevated Support 1 tier",250.00
+FAMILY_CARE_RATES,iCare ES2 Rate,,"Enter $/day for Elevated Support 2 tier",275.00
+FAMILY_CARE_RATES,iCare HBS1 Rate,,"Enter $/day for High Behavioral Support 1",300.00
+FAMILY_CARE_RATES,iCare HBS2 Rate,,"Enter $/day for High Behavioral Support 2",325.00
+FAMILY_CARE_RATES,iCare LBS1 Rate,,"Enter $/day for Low Behavioral Support 1",220.00
+FAMILY_CARE_RATES,iCare LBS2 Rate,,"Enter $/day for Low Behavioral Support 2",240.00
+FAMILY_CARE_RATES,iCare NTA 12+ Rate,,"Enter NTA add-on for 12+ comorbidities",90.00
+FAMILY_CARE_RATES,iCare NTA 6-11 Rate,,"Enter NTA add-on for 6-11 comorbidities",70.00
+FAMILY_CARE_RATES,iCare NTA 0-5 Rate,,"Enter NTA add-on for 0-5 comorbidities",50.00
+
+COST_MODELS,Data Source,,"ACTUAL (from P&L) or ESTIMATE (industry benchmarks)",ACTUAL
+COST_MODELS,LOW Acuity - Nursing Hours/Day,,"Nursing hours per patient day for LOW acuity (e.g. 2.5)",2.5
+COST_MODELS,LOW Acuity - Hourly Nursing Rate,,"Loaded hourly rate (wages + benefits + overhead)",35.00
+COST_MODELS,LOW Acuity - Supply Cost/Day,,"Medical supplies per day",20.00
+COST_MODELS,LOW Acuity - Pharmacy Add-on,,"Pharmacy costs per day (if any)",0.00
+COST_MODELS,LOW Acuity - Transport Cost,,"One-time transport cost from hospital (ambulance)",150.00
+
+COST_MODELS,MEDIUM Acuity - Nursing Hours/Day,,"Nursing hours for MEDIUM acuity",4.0
+COST_MODELS,MEDIUM Acuity - Hourly Nursing Rate,,"Loaded hourly rate",35.00
+COST_MODELS,MEDIUM Acuity - Supply Cost/Day,,"Medical supplies per day",35.00
+COST_MODELS,MEDIUM Acuity - Pharmacy Add-on,,"Pharmacy costs per day",25.00
+COST_MODELS,MEDIUM Acuity - Transport Cost,,"Transport cost",150.00
+
+COST_MODELS,HIGH Acuity - Nursing Hours/Day,,"Nursing hours for HIGH acuity",6.0
+COST_MODELS,HIGH Acuity - Hourly Nursing Rate,,"Loaded hourly rate",35.00
+COST_MODELS,HIGH Acuity - Supply Cost/Day,,"Medical supplies per day",60.00
+COST_MODELS,HIGH Acuity - Pharmacy Add-on,,"Pharmacy costs per day (IV antibiotics, wound vac)",50.00
+COST_MODELS,HIGH Acuity - Transport Cost,,"Transport cost",150.00
+
+COST_MODELS,COMPLEX Acuity - Nursing Hours/Day,,"Nursing hours for COMPLEX acuity",8.5
+COST_MODELS,COMPLEX Acuity - Hourly Nursing Rate,,"Loaded hourly rate",35.00
+COST_MODELS,COMPLEX Acuity - Supply Cost/Day,,"Medical supplies per day",90.00
+COST_MODELS,COMPLEX Acuity - Pharmacy Add-on,,"Pharmacy costs per day",75.00
+COST_MODELS,COMPLEX Acuity - Transport Cost,,"Transport cost",150.00
+
+COST_MODELS,Room & Board Cost/Day,,"Food, housekeeping, laundry, utilities (all acuity levels)",95.00
+COST_MODELS,Overhead Cost/Day,,"Admin, marketing, insurance, IT (all acuity levels)",120.00
+
+STAFF_ACCOUNTS,Admissions Director Name,,"Full name for admin account",Jane Smith
+STAFF_ACCOUNTS,Admissions Director Email,,"Email for login",jsmith@facility.com
+STAFF_ACCOUNTS,Admissions Coordinator 1 Name,,"Full name",John Doe
+STAFF_ACCOUNTS,Admissions Coordinator 1 Email,,"Email for login",jdoe@facility.com
+STAFF_ACCOUNTS,Admissions Coordinator 2 Name,,"Full name (if applicable)",
+STAFF_ACCOUNTS,Admissions Coordinator 2 Email,,"Email for login",
+STAFF_ACCOUNTS,Clinical Reviewer Name,,"Full name (if applicable)",
+STAFF_ACCOUNTS,Clinical Reviewer Email,,"Email for login",
+
+NOTES,P&L Calculation Help,,"To calculate nursing cost/day: (Total nursing payroll from P&L) / (Total patient days). Example: $500k payroll / 10,000 patient days = $50/day",
+NOTES,Industry Benchmarks,,"If you don't have P&L data, use these estimates: LOW=$80-100/day, MEDIUM=$140-180/day, HIGH=$220-280/day, COMPLEX=$300-400/day",
+NOTES,Wage Index Lookup,,"Go to cms.gov → Search 'SNF PPS wage index 2024' → Find your county → Use 'Wage Index' column",
+NOTES,VBP Lookup,,"VBP (Value-Based Purchasing) multiplier is on your Medicare remittance advice. If you don't have it, use 1.0 (neutral)",
