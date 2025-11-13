@@ -102,6 +102,11 @@ def login():
             # HIPAA audit log: successful login
             log_authentication(user.id, True)
 
+            # Check if password must be changed
+            if user.password_must_change:
+                flash('For security reasons, you must change your password before continuing.', 'warning')
+                return redirect(url_for('auth.force_password_change'))
+
             flash(f'Welcome back, {user.full_name or user.email}!', 'success')
             return redirect(url_for('dashboard'))
         else:
@@ -181,6 +186,84 @@ def register():
     facilities = Facility.get_all(organization_id=1)
 
     return render_template('register.html', facilities=facilities)
+
+
+@auth_bp.route('/force-password-change', methods=['GET', 'POST'])
+def force_password_change():
+    """
+    Force password change page for users with password_must_change flag.
+    This is shown on first login or when admin resets password.
+    """
+    # Must be logged in to change password
+    if 'user_id' not in session:
+        flash('Please log in first.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    user = User.get_by_id(session['user_id'])
+    if not user:
+        session.clear()
+        flash('Invalid user session.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    # If password doesn't need to be changed, redirect to dashboard
+    if not user.password_must_change:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+
+        # Verify current password
+        if not user.verify_password(current_password):
+            flash('Current password is incorrect.', 'danger')
+            return render_template('force_password_change.html', user=user)
+
+        # Validate new password
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'danger')
+            return render_template('force_password_change.html', user=user)
+
+        # Check password strength
+        is_valid, message = validate_password_strength(new_password)
+        if not is_valid:
+            flash(message, 'danger')
+            return render_template('force_password_change.html', user=user)
+
+        # Don't allow same password
+        if current_password == new_password:
+            flash('New password must be different from current password.', 'warning')
+            return render_template('force_password_change.html', user=user)
+
+        # Update password and clear password_must_change flag
+        success = user.change_password(new_password)
+        if success:
+            # Clear the password_must_change flag
+            from config.database import db
+            db.execute_query(
+                "UPDATE users SET password_must_change = 0 WHERE id = ?",
+                (user.id,),
+                fetch='none'
+            )
+
+            # Audit log
+            log_audit_event(
+                organization_id=user.organization_id,
+                user_id=user.id,
+                action='password_changed',
+                resource_type='user',
+                resource_id=user.id,
+                details={'reason': 'forced_change'}
+            )
+
+            flash('Password changed successfully! You can now use the application.', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Failed to change password. Please try again.', 'danger')
+            return render_template('force_password_change.html', user=user)
+
+    # GET request - show form
+    return render_template('force_password_change.html', user=user)
 
 
 @auth_bp.route('/logout')

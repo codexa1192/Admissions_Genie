@@ -266,6 +266,7 @@ def init_db(database_url: Optional[str] = None):
         failed_login_attempts INTEGER DEFAULT 0,
         locked_until TIMESTAMP,
         last_failed_login TIMESTAMP,
+        password_must_change INTEGER DEFAULT 0,  -- Force password change on next login
         FOREIGN KEY (organization_id) REFERENCES organizations (id),
         FOREIGN KEY (facility_id) REFERENCES facilities (id)
     );

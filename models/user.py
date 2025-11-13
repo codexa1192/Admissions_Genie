@@ -22,7 +22,8 @@ class User:
                  full_name: Optional[str] = None, facility_id: Optional[int] = None,
                  role: str = USER, is_active: bool = True, created_at: Optional[datetime] = None,
                  last_login: Optional[datetime] = None, failed_login_attempts: int = 0,
-                 locked_until: Optional[datetime] = None, last_failed_login: Optional[datetime] = None):
+                 locked_until: Optional[datetime] = None, last_failed_login: Optional[datetime] = None,
+                 password_must_change: bool = False):
         self.id = id
         self.organization_id = organization_id  # MULTI-TENANT
         self.email = email
@@ -36,10 +37,11 @@ class User:
         self.failed_login_attempts = failed_login_attempts
         self.locked_until = locked_until
         self.last_failed_login = last_failed_login
+        self.password_must_change = password_must_change
 
     @classmethod
     def create(cls, organization_id: int, email: str, password: str, full_name: Optional[str] = None,
-               facility_id: Optional[int] = None, role: str = USER) -> 'User':
+               facility_id: Optional[int] = None, role: str = USER, password_must_change: bool = False) -> 'User':
         """
         Create a new user (MULTI-TENANT).
 
@@ -50,6 +52,7 @@ class User:
             full_name: User's full name
             facility_id: ID of associated facility (optional)
             role: User role (default: 'user')
+            password_must_change: Force password change on next login (default: False)
 
         Returns:
             User instance with assigned ID
@@ -61,13 +64,13 @@ class User:
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         query = """
-            INSERT INTO users (organization_id, email, password_hash, full_name, facility_id, role)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (organization_id, email, password_hash, full_name, facility_id, role, password_must_change)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """
 
         user_id = db.execute_query(
             query,
-            (organization_id, email, password_hash, full_name, facility_id, role),
+            (organization_id, email, password_hash, full_name, facility_id, role, 1 if password_must_change else 0),
             fetch='none'
         )
 
@@ -78,7 +81,8 @@ class User:
             password_hash=password_hash,
             full_name=full_name,
             facility_id=facility_id,
-            role=role
+            role=role,
+            password_must_change=password_must_change
         )
 
     @classmethod
@@ -153,6 +157,8 @@ class User:
             else:
                 last_failed_login = last_failed_login_raw
 
+        password_must_change_raw = row['password_must_change'] if 'password_must_change' in row.keys() else 0
+
         return cls(
             id=row['id'],
             organization_id=row['organization_id'],  # MULTI-TENANT
@@ -166,7 +172,8 @@ class User:
             last_login=row['last_login'],
             failed_login_attempts=failed_attempts,
             locked_until=locked_until,
-            last_failed_login=last_failed_login
+            last_failed_login=last_failed_login,
+            password_must_change=bool(password_must_change_raw)
         )
 
     def verify_password(self, password: str) -> bool:
